@@ -39,8 +39,7 @@ class MovieDocument:
         release_date = cls.parse_date(doc.get('release_date'))
         
         return {
-            "_id": f"tmdb_{doc.get('id')}",
-            "tmdb_id": doc.get('id'),
+            "_id": doc.get('id'),
             "title": doc.get('title', ''),
             "original_title": doc.get('original_title', ''),
             "overview": doc.get('overview', ''),

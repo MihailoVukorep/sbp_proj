@@ -15,7 +15,7 @@ class DatabaseInitializer:
         self.connection_string = connection_string
         self.database_name = database_name
         self.collection_name = collection_name
-        self.batch_size = 8000
+        self.batch_size = 10000
         self.num_workers = 8
         
         self.client = None
