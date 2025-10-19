@@ -1,9 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Performance Comparison Script - V1 vs V2
+Izvršava sve upite na obe verzije i prikazuje poređenje performansi
+"""
+
 import time
 import json
-import statistics
+import os
 from pymongo import MongoClient
 from typing import Dict, List, Tuple
-import traceback
+import statistics
 
 
 class PerformanceComparator:
@@ -281,6 +288,7 @@ class PerformanceComparator:
         return summary
     
     def export_results(self, filepath: str):
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         summary = self.get_summary()
         with open(filepath, 'w') as f:
             json.dump(summary, f, indent=2)
@@ -308,4 +316,4 @@ if __name__ == "__main__":
         print(f"  Improvement: {metrics['improvement_percent']}%")
         print(f"  Speedup: {metrics['speedup_factor']}x")
     
-    comparator.export_results('performance_results.json')
+    comparator.export_results('results/performance_results.json')
