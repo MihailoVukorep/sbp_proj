@@ -517,7 +517,7 @@ class PerformanceComparator:
 
 def main():
     # Možeš promeniti naziv foldera ako želiš
-    output_folder = "performance_reports"
+    output_folder = "output"
     
     comparator = PerformanceComparator(output_folder=output_folder)
     

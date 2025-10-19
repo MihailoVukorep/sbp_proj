@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Performance Comparison Script - V1 vs V2
+Performance Comparison Script - V1 vs V2 (Ispravljena verzija)
 Izvršava sve upite na obe verzije i prikazuje poređenje performansi
 """
 
@@ -15,7 +15,7 @@ import statistics
 
 class PerformanceComparator:
     
-    def __init__(self, v1_collection, v2_collection, iterations=5):
+    def __init__(self, v1_collection, v2_collection, iterations=3):
         self.v1_collection = v1_collection
         self.v2_collection = v2_collection
         self.iterations = iterations
@@ -28,6 +28,7 @@ class PerformanceComparator:
         }
     
     def measure_query(self, collection, query_func, query_name: str, version: str):
+        """Meri vreme izvršavanja query-ja"""
         times = []
         for i in range(self.iterations):
             try:
@@ -41,229 +42,264 @@ class PerformanceComparator:
         
         return times
     
+    # QUERY 1: Top 10 Profitable Companies
     def query_1_v1(self, collection):
+        """V1 - Direktni budget filter"""
         return collection.aggregate([
-            {'$match': {'revenue': {'$gte': 100000000}}},
-            {'$unwind': '$production_companies'},
-            {'$group': {
-                '_id': '$production_companies.name',
-                'total_revenue': {'$sum': '$revenue'},
-                'avg_budget': {'$avg': '$budget'},
-                'count': {'$sum': 1}
+            {'$match': {
+                'financial.budget': {'$gt': 50000000}, 
+                'financial.revenue': {'$gt': 0}
             }},
-            {'$sort': {'total_revenue': -1}},
+            {'$unwind': '$production.companies'},
+            {'$group': {
+                '_id': '$production.companies',
+                'avg_revenue': {'$avg': '$financial.revenue'},
+                'total_movies': {'$sum': 1},
+                'total_revenue': {'$sum': '$financial.revenue'}
+            }},
+            {'$sort': {'avg_revenue': -1}},
             {'$limit': 10}
-        ])
+        ], allowDiskUse=True)
     
     def query_1_v2(self, collection):
+        """V2 - Budget category index"""
         return collection.aggregate([
-            {'$match': {'budget_category': {'$in': ['High', 'Ultra-High']}}},
-            {'$unwind': '$companies'},
-            {'$group': {
-                '_id': '$companies.name',
-                'total_revenue': {'$sum': '$revenue'},
-                'avg_budget': {'$avg': '$budget'},
-                'count': {'$sum': 1}
+            {'$match': {
+                'financial.budget_category': {'$in': ['high', 'blockbuster']}
             }},
-            {'$sort': {'total_revenue': -1}},
+            {'$unwind': '$production.companies'},
+            {'$group': {
+                '_id': '$production.companies',
+                'avg_revenue': {'$avg': '$financial.revenue'},
+                'total_movies': {'$sum': 1},
+                'total_revenue': {'$sum': '$financial.revenue'}
+            }},
+            {'$sort': {'avg_revenue': -1}},
             {'$limit': 10}
-        ])
+        ], allowDiskUse=True)
     
+    # QUERY 2: Average Rating by Genre and Decade
     def query_2_v1(self, collection):
+        """V1 - Računanje decade u pipeline"""
         return collection.aggregate([
+            {'$match': {
+                'release_info.release_date.year': {'$exists': True, '$ne': None}, 
+                'ratings.vote_average': {'$gt': 0}
+            }},
+            {'$unwind': '$content_info.genres'},
             {'$addFields': {
                 'decade': {
-                    '$cond': [
-                        {'$eq': [{'$substr': ['$release_date', 0, 4]}, '']},
-                        0,
-                        {'$toInt': {'$substr': ['$release_date', 0, 3]}}
+                    '$multiply': [
+                        {'$floor': {'$divide': ['$release_info.release_date.year', 10]}}, 
+                        10
                     ]
                 }
             }},
-            {'$unwind': '$genres'},
-            {'$match': {'genres.name': {'$in': ['Action', 'Comedy', 'Drama', 'Horror', 'Thriller']}}},
             {'$group': {
-                '_id': {'genre': '$genres.name', 'decade': '$decade'},
-                'avg_vote': {'$avg': '$vote_average'},
-                'count': {'$sum': 1}
+                '_id': {
+                    'genre': '$content_info.genres', 
+                    'decade': '$decade'
+                },
+                'avg_rating': {'$avg': '$ratings.vote_average'},
+                'movie_count': {'$sum': 1}
             }},
-            {'$sort': {'_id.decade': -1, 'avg_vote': -1}},
-            {'$limit': 20}
-        ])
+            {'$sort': {'_id.decade': 1}},
+            {'$limit': 50}
+        ], allowDiskUse=True)
     
     def query_2_v2(self, collection):
+        """V2 - Precomputed decade field"""
         return collection.aggregate([
-            {'$unwind': '$genres'},
             {'$match': {
-                'genres.name': {'$in': ['Action', 'Comedy', 'Drama', 'Horror', 'Thriller']},
-                'decade': {'$exists': True}
+                'release_info.decade': {'$exists': True, '$ne': None}, 
+                'ratings.vote_average': {'$gt': 0}
+            }},
+            {'$unwind': '$content_info.genres'},
+            {'$group': {
+                '_id': {
+                    'genre': '$content_info.genres', 
+                    'decade': '$release_info.decade'
+                },
+                'avg_rating': {'$avg': '$ratings.vote_average'},
+                'movie_count': {'$sum': 1}
+            }},
+            {'$sort': {'_id.decade': 1}},
+            {'$limit': 50}
+        ], allowDiskUse=True)
+    
+    # QUERY 3: Blockbuster Movies by Month
+    def query_3_v1(self, collection):
+        """V1 - Direktni budget filter i month extraction"""
+        return collection.aggregate([
+            {'$match': {
+                'financial.budget': {'$gt': 100000000}, 
+                'release_info.release_date.month': {'$exists': True}
             }},
             {'$group': {
-                '_id': {'genre': '$genres.name', 'decade': '$decade'},
-                'avg_vote': {'$avg': '$vote_average'},
-                'count': {'$sum': 1}
+                '_id': '$release_info.release_date.month',
+                'blockbuster_count': {'$sum': 1},
+                'avg_budget': {'$avg': '$financial.budget'},
+                'total_revenue': {'$sum': '$financial.revenue'}
             }},
-            {'$sort': {'_id.decade': -1, 'avg_vote': -1}},
-            {'$limit': 20}
-        ])
+            {'$sort': {'blockbuster_count': -1}}
+        ], allowDiskUse=True)
     
-    def query_3_v1(self, collection):
+    def query_3_v2(self, collection):
+        """V2 - Budget category i precomputed month"""
         return collection.aggregate([
-            {'$match': {'budget': {'$gte': 50000000, '$lte': 150000000}}},
+            {'$match': {
+                'financial.budget_category': 'blockbuster', 
+                'release_info.month': {'$exists': True}
+            }},
+            {'$group': {
+                '_id': '$release_info.month',
+                'blockbuster_count': {'$sum': 1},
+                'avg_budget': {'$avg': '$financial.budget'},
+                'total_revenue': {'$sum': '$financial.revenue'}
+            }},
+            {'$sort': {'blockbuster_count': -1}}
+        ], allowDiskUse=True)
+    
+    # QUERY 4: Most Profitable Genre Combinations
+    def query_4_v1(self, collection):
+        """V1 - Kalkulacija profit/roi u pipeline"""
+        return collection.aggregate([
+            {'$match': {
+                'financial.revenue': {'$gt': 0}, 
+                'financial.budget': {'$gt': 0}, 
+                'content_info.genres': {'$exists': True, '$ne': []}
+            }},
             {'$addFields': {
-                'release_month': {
-                    '$cond': [
-                        {'$eq': [{'$substr': ['$release_date', 5, 2]}, '']},
-                        0,
-                        {'$toInt': {'$substr': ['$release_date', 5, 2]}}
+                'profit': {'$subtract': ['$financial.revenue', '$financial.budget']},
+                'roi': {
+                    '$multiply': [
+                        {'$divide': [
+                            {'$subtract': ['$financial.revenue', '$financial.budget']}, 
+                            '$financial.budget'
+                        ]}, 
+                        100
                     ]
                 }
             }},
             {'$group': {
-                '_id': {'month': '$release_month'},
-                'count': {'$sum': 1},
-                'avg_vote': {'$avg': '$vote_average'},
-                'avg_revenue': {'$avg': '$revenue'}
+                '_id': '$content_info.genres',
+                'avg_profit': {'$avg': '$profit'},
+                'avg_roi': {'$avg': '$roi'},
+                'movie_count': {'$sum': 1}
             }},
-            {'$sort': {'_id.month': 1}},
-            {'$limit': 12}
-        ])
-    
-    def query_3_v2(self, collection):
-        return collection.aggregate([
-            {'$match': {'budget_category': 'Medium'}},
-            {'$group': {
-                '_id': {'month': '$release_month'},
-                'count': {'$sum': 1},
-                'avg_vote': {'$avg': '$vote_average'},
-                'avg_revenue': {'$avg': '$revenue'}
-            }},
-            {'$sort': {'_id.month': 1}},
-            {'$limit': 12}
-        ])
-    
-    def query_4_v1(self, collection):
-        movies = list(collection.find(
-            {'genres': {'$size': 2}},
-            {'genres': 1, 'revenue': 1, 'vote_average': 1}
-        ).limit(5000))
-        
-        genre_pairs = {}
-        for movie in movies:
-            if len(movie.get('genres', [])) == 2:
-                pair = tuple(sorted([g['name'] for g in movie['genres']]))
-                if pair not in genre_pairs:
-                    genre_pairs[pair] = {'revenue': [], 'votes': []}
-                genre_pairs[pair]['revenue'].append(movie.get('revenue', 0))
-                genre_pairs[pair]['votes'].append(movie.get('vote_average', 0))
-        
-        results = []
-        for pair, data in sorted(genre_pairs.items(), 
-                                key=lambda x: sum(x[1]['revenue']) or 0, 
-                                reverse=True)[:10]:
-            results.append({
-                'genres': list(pair),
-                'total_revenue': sum(data['revenue']),
-                'avg_vote': statistics.mean(data['votes']) if data['votes'] else 0,
-                'count': len(data['votes'])
-            })
-        return results
+            {'$match': {'movie_count': {'$gte': 10}}},
+            {'$sort': {'avg_profit': -1}},
+            {'$limit': 20}
+        ], allowDiskUse=True)
     
     def query_4_v2(self, collection):
+        """V2 - Precomputed profit/roi i genre_pairs"""
         return collection.aggregate([
-            {'$match': {'genre_pairs': {'$exists': True, '$ne': []}}},
-            {'$unwind': '$genre_pairs'},
-            {'$group': {
-                '_id': '$genre_pairs',
-                'total_revenue': {'$sum': '$revenue'},
-                'avg_vote': {'$avg': '$vote_average'},
-                'count': {'$sum': 1}
+            {'$match': {
+                'financial.is_profitable': True, 
+                'content_info.genre_pairs': {'$exists': True, '$ne': []}
             }},
-            {'$sort': {'total_revenue': -1}},
-            {'$limit': 10}
-        ])
+            {'$unwind': '$content_info.genre_pairs'},
+            {'$group': {
+                '_id': '$content_info.genre_pairs',
+                'avg_profit': {'$avg': '$financial.profit'},
+                'avg_roi': {'$avg': '$financial.roi'},
+                'movie_count': {'$sum': 1}
+            }},
+            {'$match': {'movie_count': {'$gte': 10}}},
+            {'$sort': {'avg_roi': -1}},
+            {'$limit': 20}
+        ], allowDiskUse=True)
     
+    # QUERY 5: Average Runtime by Country
     def query_5_v1(self, collection):
+        """V1 - Runtime i quality calculation u pipeline"""
         return collection.aggregate([
-            {'$match': {'vote_average': {'$gte': 7.0, '$lte': 9.0}}},
-            {'$unwind': '$spoken_languages'},
+            {'$match': {'ratings.vote_average': {'$gt': 7.0}}},
+            {'$unwind': '$production.countries'},
             {'$group': {
-                '_id': {
-                    'country': '$spoken_languages',
-                    'runtime_range': {
-                        '$cond': [
-                            {'$lte': ['$runtime', 90]},
-                            'Short',
-                            {'$cond': [
-                                {'$lte': ['$runtime', 120]},
-                                'Standard',
-                                'Long'
-                            ]}
-                        ]
-                    }
-                },
-                'count': {'$sum': 1},
-                'avg_runtime': {'$avg': '$runtime'},
-                'avg_vote': {'$avg': '$vote_average'}
+                '_id': '$production.countries',
+                'avg_runtime': {'$avg': '$content_info.runtime'},
+                'movie_count': {'$sum': 1},
+                'avg_rating': {'$avg': '$ratings.vote_average'}
             }},
-            {'$sort': {'count': -1}},
-            {'$limit': 15}
-        ])
+            {'$match': {'movie_count': {'$gte': 100}}},
+            {'$sort': {'avg_runtime': -1}},
+            {'$limit': 20}
+        ], allowDiskUse=True)
     
     def query_5_v2(self, collection):
+        """V2 - Precomputed quality_tier index"""
         return collection.aggregate([
-            {'$match': {'quality_tier': {'$in': ['Good', 'Excellent']}}},
-            {'$unwind': '$countries'},
-            {'$group': {
-                '_id': {
-                    'country': '$countries',
-                    'runtime_range': '$runtime_range'
-                },
-                'count': {'$sum': 1},
-                'avg_runtime': {'$avg': '$runtime'},
-                'avg_vote': {'$avg': '$vote_average'}
+            {'$match': {
+                'ratings.quality_tier': {'$in': ['good', 'excellent']}, 
+                'content_info.runtime': {'$gt': 0}
             }},
-            {'$sort': {'count': -1}},
-            {'$limit': 15}
-        ])
+            {'$unwind': '$production.countries'},
+            {'$group': {
+                '_id': '$production.countries',
+                'avg_runtime': {'$avg': '$content_info.runtime'},
+                'movie_count': {'$sum': 1},
+                'avg_rating': {'$avg': '$ratings.vote_average'}
+            }},
+            {'$match': {'movie_count': {'$gte': 100}}},
+            {'$sort': {'avg_runtime': -1}},
+            {'$limit': 20}
+        ], allowDiskUse=True)
     
     def run_comparison(self):
+        """Izvršava sve upite i poredi performanse"""
         print("\n" + "="*70)
         print("PERFORMANCE COMPARISON: V1 vs V2")
         print("="*70)
         
         queries = [
-            ('query_1', self.query_1_v1, self.query_1_v2),
-            ('query_2', self.query_2_v1, self.query_2_v2),
-            ('query_3', self.query_3_v1, self.query_3_v2),
-            ('query_4', self.query_4_v1, self.query_4_v2),
-            ('query_5', self.query_5_v1, self.query_5_v2),
+            ('query_1', self.query_1_v1, self.query_1_v2, 'Top 10 Profitable Companies'),
+            ('query_2', self.query_2_v1, self.query_2_v2, 'Average Rating by Genre/Decade'),
+            ('query_3', self.query_3_v1, self.query_3_v2, 'Blockbuster Movies by Month'),
+            ('query_4', self.query_4_v1, self.query_4_v2, 'Most Profitable Genre Combinations'),
+            ('query_5', self.query_5_v1, self.query_5_v2, 'Average Runtime by Country'),
         ]
         
-        for query_name, query_v1_func, query_v2_func in queries:
-            print(f"\n{query_name.upper()}:")
+        for query_name, query_v1_func, query_v2_func, description in queries:
+            print(f"\n{query_name.upper()}: {description}")
             print("-" * 70)
             
+            # Meri V1
+            print(f"V1 (Originalna verzija):")
             v1_times = self.measure_query(self.v1_collection, query_v1_func, query_name, "V1")
+            
+            # Meri V2
+            print(f"V2 (Optimizovana verzija):")
             v2_times = self.measure_query(self.v2_collection, query_v2_func, query_name, "V2")
             
+            # Sačuvaj rezultate
             self.results[query_name]['v1'] = [t for t in v1_times if t is not None]
             self.results[query_name]['v2'] = [t for t in v2_times if t is not None]
             
+            # Prikaži statistiku
             if self.results[query_name]['v1'] and self.results[query_name]['v2']:
                 v1_avg = statistics.mean(self.results[query_name]['v1'])
                 v2_avg = statistics.mean(self.results[query_name]['v2'])
-                improvement = ((v1_avg - v2_avg) / v1_avg) * 100
+                v1_min = min(self.results[query_name]['v1'])
+                v1_max = max(self.results[query_name]['v1'])
+                v2_min = min(self.results[query_name]['v2'])
+                v2_max = max(self.results[query_name]['v2'])
                 
-                print(f"V1 (avg): {v1_avg:.2f}ms | V2 (avg): {v2_avg:.2f}ms")
-                print(f"Improvement: {improvement:.1f}%")
-                print(f"Speedup: {v1_avg/v2_avg:.2f}x")
+                improvement = ((v1_avg - v2_avg) / v1_avg) * 100
+                speedup = v1_avg / v2_avg
+                
+                print(f"\n  V1: avg={v1_avg:.2f}ms, min={v1_min:.2f}ms, max={v1_max:.2f}ms")
+                print(f"  V2: avg={v2_avg:.2f}ms, min={v2_min:.2f}ms, max={v2_max:.2f}ms")
+                print(f"  📊 Poboljšanje: {improvement:.1f}%")
+                print(f"  ⏱️  Ubrzanje: {speedup:.2f}x brže")
             else:
-                print("Error: Could not measure times")
+                print("  ✗ Error: Could not measure times")
         
         return self.results
     
     def get_summary(self) -> Dict:
+        """Generiše sumarnu statistiku"""
         summary = {}
         
         for query_name, times in self.results.items():
@@ -288,32 +324,80 @@ class PerformanceComparator:
         return summary
     
     def export_results(self, filepath: str):
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        """Eksportuje rezultate u JSON"""
+        os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
         summary = self.get_summary()
-        with open(filepath, 'w') as f:
-            json.dump(summary, f, indent=2)
-        print(f"\nResults exported to: {filepath}")
+        
+        # Dodaj ukupnu statistiku
+        total_v1 = sum(q['v1_avg_ms'] for q in summary.values())
+        total_v2 = sum(q['v2_avg_ms'] for q in summary.values())
+        
+        output = {
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'iterations': self.iterations,
+            'queries': summary,
+            'totals': {
+                'total_v1_ms': round(total_v1, 2),
+                'total_v2_ms': round(total_v2, 2),
+                'total_improvement_percent': round(((total_v1 - total_v2) / total_v1) * 100, 1),
+                'total_speedup': round(total_v1 / total_v2, 2)
+            }
+        }
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
+        
+        print(f"\n✓ Results exported to: {filepath}")
 
 
 if __name__ == "__main__":
+    # Konekcija na MongoDB
     client = MongoClient('mongodb://localhost:27017/')
     db = client['SBP_DB']
     
     v1_collection = db['movies']
     v2_collection = db['movies_optimized']
     
-    comparator = PerformanceComparator(v1_collection, v2_collection, iterations=5)
+    # Proveri kolekcije
+    print("\nProveravajući kolekcije...")
+    v1_count = v1_collection.count_documents({})
+    v2_count = v2_collection.count_documents({})
+    
+    print(f"✓ V1 (movies): {v1_count:,} dokumenta")
+    print(f"✓ V2 (movies_optimized): {v2_count:,} dokumenta")
+    
+    # Pokreni poređenje
+    comparator = PerformanceComparator(v1_collection, v2_collection, iterations=3)
     comparator.run_comparison()
     
+    # Prikaži summary
     summary = comparator.get_summary()
     print("\n" + "="*70)
-    print("SUMMARY")
+    print("SUMARNI IZVEŠTAJ")
     print("="*70)
+    
+    total_v1 = 0
+    total_v2 = 0
+    
     for query, metrics in summary.items():
         print(f"\n{query}:")
         print(f"  V1: {metrics['v1_avg_ms']}ms")
         print(f"  V2: {metrics['v2_avg_ms']}ms")
-        print(f"  Improvement: {metrics['improvement_percent']}%")
-        print(f"  Speedup: {metrics['speedup_factor']}x")
+        print(f"  Poboljšanje: {metrics['improvement_percent']}%")
+        print(f"  Ubrzanje: {metrics['speedup_factor']}x")
+        
+        total_v1 += metrics['v1_avg_ms']
+        total_v2 += metrics['v2_avg_ms']
     
-    comparator.export_results('results/performance_results.json')
+    total_improvement = ((total_v1 - total_v2) / total_v1) * 100
+    total_speedup = total_v1 / total_v2
+    
+    print("\n" + "="*70)
+    print(f"UKUPNO:")
+    print(f"  V1: {total_v1:.2f}ms")
+    print(f"  V2: {total_v2:.2f}ms")
+    print(f"  Ukupno poboljšanje: {total_improvement:.1f}%")
+    print(f"  Ukupno ubrzanje: {total_speedup:.2f}x")
+    
+    # Eksportuj rezultate
+    comparator.export_results('output/performance_results.json')

@@ -8,10 +8,10 @@ from typing import Dict, List
 
 class PerformanceVisualizer:
     
-    def __init__(self, results_file: str = 'performance_results.json'):
+    def __init__(self, results_file: str = 'output/performance_results.json'):
         self.results_file = results_file
         self.results = self._load_results()
-        self.output_dir = Path('performance_charts')
+        self.output_dir = Path('output')
         self.output_dir.mkdir(exist_ok=True)
         
         sns.set_theme(style="whitegrid")
@@ -20,7 +20,11 @@ class PerformanceVisualizer:
     def _load_results(self) -> Dict:
         try:
             with open(self.results_file, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ako je nova struktura sa 'queries' ključem, ekstraktuj ga
+                if isinstance(data, dict) and 'queries' in data:
+                    return data['queries']
+                return data
         except FileNotFoundError:
             print(f"Results file not found: {self.results_file}")
             return {}
@@ -143,7 +147,7 @@ class PerformanceVisualizer:
         ax.legend(fontsize=11)
         ax.grid(axis='y', alpha=0.3)
         
-        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.15, top=0.95)
         plt.savefig(self.output_dir / 'min_max_range.png', dpi=300, bbox_inches='tight')
         print(f"Saved: {self.output_dir / 'min_max_range.png'}")
         plt.close()
@@ -188,7 +192,7 @@ class PerformanceVisualizer:
                     table[(i, j)].set_facecolor('#ffffff')
         
         plt.title('Detaljni pregled performansi svih upita', fontsize=14, fontweight='bold', pad=20)
-        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.15, top=0.95)
         plt.savefig(self.output_dir / 'summary_table.png', dpi=300, bbox_inches='tight')
         print(f"Saved: {self.output_dir / 'summary_table.png'}")
         plt.close()
@@ -204,5 +208,5 @@ class PerformanceVisualizer:
 
 
 if __name__ == "__main__":
-    visualizer = PerformanceVisualizer('performance_results.json')
+    visualizer = PerformanceVisualizer('output/performance_results.json')
     visualizer.create_all_charts()
