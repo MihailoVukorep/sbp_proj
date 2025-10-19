@@ -209,7 +209,7 @@ def main():
         csv_path='../../dataset/TMDB_movie_dataset_v11.csv',
         connection_string='mongodb://localhost:27017/',
         database_name='SBP_DB',
-        collection_name='movies'
+        collection_name='movies_optimized'
     )
     
     if not initializer.connect():

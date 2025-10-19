@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  metabase:
+    image: metabase/metabase:latest
+    container_name: sbp-metabase
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - sbp-network
+    environment:
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /metabase-data/metabase.db
+      MB_JAVA_TIMEZONE: Europe/Belgrade
+    volumes:
+      - metabase-data:/metabase-data
+    healthcheck:
+      test: curl -f http://localhost:3000/api/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  metabase-data:
+    driver: local
+
+networks:
+  sbp-network:
+    driver: bridge

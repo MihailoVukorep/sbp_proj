@@ -5,8 +5,7 @@ use SBP_DB
 // GRUPA 1: INDEKSI ZA UPIT 1 (Prosečan prihod po kompaniji, budžet > 50M)
 // ============================================================================
 
-// 1.1. Compound Index: budget_category + companies
-db.movies.createIndex(
+db.movies_optimized.createIndex(
     {
         "financial.budget_category": 1,
         "production.companies": 1
@@ -16,13 +15,11 @@ db.movies.createIndex(
     }
 );
 
-
 // ============================================================================
 // GRUPA 2: INDEKSI ZA UPIT 2 (Prosečna ocena po žanru kroz decenije)
 // ============================================================================
 
-// 2.1. Compound Index: decade + genres + vote_average
-db.movies.createIndex(
+db.movies_optimized.createIndex(
     {
         "release_info.decade": 1,
         "content_info.genres": 1,
@@ -33,14 +30,11 @@ db.movies.createIndex(
     }
 );
 
-
 // ============================================================================
 // GRUPA 3: INDEKSI ZA UPIT 3 (Meseci sa najviše blockbuster filmova)
 // ============================================================================
 
-
-// 3.1. Compound Index: budget_category + month
-db.movies.createIndex(
+db.movies_optimized.createIndex(
     {
         "financial.budget_category": 1,
         "release_info.month": 1
@@ -50,14 +44,11 @@ db.movies.createIndex(
     }
 );
 
-
 // ============================================================================
 // GRUPA 4: INDEKSI ZA UPIT 4 (Najprofitabilnije kombinacije žanrova)
 // ============================================================================
 
-
-// 4.1. Compound Index: is_profitable + genre_pairs
-db.movies.createIndex(
+db.movies_optimized.createIndex(
     {
         "financial.is_profitable": 1,
         "content_info.genre_pairs": 1
@@ -67,14 +58,11 @@ db.movies.createIndex(
     }
 );
 
-
 // ============================================================================
 // GRUPA 5: INDEKSI ZA UPIT 5 (Prosečno trajanje po zemlji, ocena > 7, 100+ filmova)
 // ============================================================================
 
-
-// 5.1. Compound Index: quality_tier + countries + runtime
-db.movies.createIndex(
+db.movies_optimized.createIndex(
     {
         "ratings.quality_tier": 1,
         "production.countries": 1,
@@ -84,6 +72,7 @@ db.movies.createIndex(
         name: "idx_quality_countries_runtime",
     }
 );
+
 
 
 
