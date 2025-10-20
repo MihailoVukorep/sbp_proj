@@ -84,8 +84,32 @@ db.movies.aggregate([
   },
   {
     $sort: { blockbuster_count: -1 }
+  },
+  {
+    $addFields: {
+      month_name: {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$_id", 1] }, then: "Januar" },
+            { case: { $eq: ["$_id", 2] }, then: "Februar" },
+            { case: { $eq: ["$_id", 3] }, then: "Mart" },
+            { case: { $eq: ["$_id", 4] }, then: "April" },
+            { case: { $eq: ["$_id", 5] }, then: "Maj" },
+            { case: { $eq: ["$_id", 6] }, then: "Jun" },
+            { case: { $eq: ["$_id", 7] }, then: "Jul" },
+            { case: { $eq: ["$_id", 8] }, then: "Avgust" },
+            { case: { $eq: ["$_id", 9] }, then: "Septembar" },
+            { case: { $eq: ["$_id", 10] }, then: "Oktobar" },
+            { case: { $eq: ["$_id", 11] }, then: "Novembar" },
+            { case: { $eq: ["$_id", 12] }, then: "Decembar" }
+          ],
+          default: "Nepoznato"
+        }
+      }
+    }
   }
 ]);
+
 
 
 QUERY 4: Most profitable genre combinations
