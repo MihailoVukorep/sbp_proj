@@ -18,7 +18,7 @@ class OptimizedMovieDocument:
                     "month": month,
                     "day": int(parts[2]),
                     "full_date": date_value,
-                    "decade": (year // 10) * 10
+                    "decade": (year // 10) * 10              #added
                 }
             elif hasattr(date_value, 'year'):
                 year = date_value.year
@@ -27,7 +27,7 @@ class OptimizedMovieDocument:
                     "month": date_value.month,
                     "day": date_value.day,
                     "full_date": date_value.strftime('%Y-%m-%d'),
-                    "decade": (year // 10) * 10
+                    "decade": (year // 10) * 10              #added
                 }
         except (ValueError, IndexError, AttributeError):
             return {"full_date": str(date_value)}
@@ -41,7 +41,7 @@ class OptimizedMovieDocument:
         return [item.strip() for item in str(field_value).split(', ')]
     
     @staticmethod
-    def categorize_budget(budget: float) -> str:
+    def categorize_budget(budget: float) -> str:             #added
         if budget >= 100_000_000:
             return 'blockbuster'
         elif budget >= 50_000_000:
@@ -52,7 +52,7 @@ class OptimizedMovieDocument:
             return 'low'
     
     @staticmethod
-    def categorize_quality(vote_average: float) -> str:
+    def categorize_quality(vote_average: float) -> str:      #added
         if vote_average >= 7.0:
             return 'excellent'
         elif vote_average >= 6.0:
@@ -63,7 +63,7 @@ class OptimizedMovieDocument:
             return 'poor'
     
     @staticmethod
-    def generate_genre_pairs(genres: List[str]) -> List[str]:
+    def generate_genre_pairs(genres: List[str]) -> List[str]: #added
         if len(genres) < 2:
             return []
         
@@ -78,16 +78,16 @@ class OptimizedMovieDocument:
         return pairs
     
     @staticmethod
-    def calculate_roi(budget: float, revenue: float) -> float:
+    def calculate_roi(budget: float, revenue: float) -> float:  #added
         if budget > 0:
             return round(((revenue - budget) / budget) * 100, 2)
         return 0.0
     
     @classmethod
-    def transform(cls, doc: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(cls, doc: Dict[str, Any]) -> Dict[str, Any]:  #modified
         release_date = cls.parse_date(doc.get('release_date'))
         
-        budget = doc.get('budget', 0)
+        budget = doc.get('budget', 0)                           #?added
         revenue = doc.get('revenue', 0)
         profit = revenue - budget
         roi = cls.calculate_roi(budget, revenue)
@@ -104,7 +104,7 @@ class OptimizedMovieDocument:
         companies = cls.parse_array_field(doc.get('production_companies', ''))
         countries = cls.parse_array_field(doc.get('production_countries', ''))
         
-        runtime = doc.get('runtime', 0)
+        runtime = doc.get('runtime', 0)                         #?added
         
         return {
             "_id": doc.get('id'),
@@ -117,16 +117,17 @@ class OptimizedMovieDocument:
                 "vote_average": vote_avg,
                 "vote_count": vote_count,
                 "popularity": doc.get('popularity', 0),
-                "quality_tier": quality_tier
+                "quality_tier": quality_tier                    #added
             },
             
             "release_info": {
                 "status": doc.get('status', ''),
-                "year": release_date.get('year'),
+                "year": release_date.get('year'),               #*modified
                 "month": release_date.get('month'),
                 "day": release_date.get('day'),
                 "decade": release_date.get('decade'),
-                "full_date": release_date.get('full_date'),
+                "full_date": release_date.get('full_date'),     #*modified
+                
                 "original_language": doc.get('original_language', ''),
                 "spoken_languages": cls.parse_array_field(doc.get('spoken_languages', ''))
             },
@@ -135,23 +136,23 @@ class OptimizedMovieDocument:
                 "adult": doc.get('adult', False),
                 "runtime": runtime,
                 "genres": genres,
-                "genre_pairs": genre_pairs
+                "genre_pairs": genre_pairs                      #added
             },
             
             "financial": {
                 "budget": budget,
                 "revenue": revenue,
-                "profit": profit,
-                "roi": roi,
-                "is_profitable": is_profitable,
-                "budget_category": budget_category
+                "profit": profit,                              #added
+                "roi": roi,                                    #added
+                "is_profitable": is_profitable,                #added
+                "budget_category": budget_category             #added
             },
             
             "production": {
                 "companies": companies,
                 "countries": countries,
-                "company_count": len(companies),
-                "country_count": len(countries)
+                "company_count": len(companies),               #added
+                "country_count": len(countries)                #added
             },
             
             "media": {
@@ -161,8 +162,5 @@ class OptimizedMovieDocument:
                 "imdb_id": doc.get('imdb_id', '')
             },
             
-            "keywords": cls.parse_array_field(doc.get('keywords', '')),
-            
-            "schema_version": 2,
-            "optimized_for_queries": [1, 2, 3, 4, 5]
+            "keywords": cls.parse_array_field(doc.get('keywords', '')),        
         }

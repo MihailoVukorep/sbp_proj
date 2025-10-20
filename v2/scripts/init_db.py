@@ -175,11 +175,11 @@ class DatabaseInitializer:
             print(f"Documents with IMDB ID: {with_imdb:,} ({(with_imdb/count)*100:.1f}%)")
             
             pipeline = [
-                {"$match": {"release_info.year": {"$exists": True}}},
+                {"$match": {"release_info.year": {"$exists": True}}},         #changed depth
                 {"$group": {
                     "_id": None,
-                    "min_year": {"$min": "$release_info.year"},
-                    "max_year": {"$max": "$release_info.year"}
+                    "min_year": {"$min": "$release_info.year"},               #changed depth
+                    "max_year": {"$max": "$release_info.year"}                #changed depth
                 }}
             ]
             year_range = list(self.collection.aggregate(pipeline))
@@ -193,10 +193,10 @@ class DatabaseInitializer:
                 print(f"  Title: {sample.get('title')}")
                 print(f"  IMDB ID: {sample.get('media', {}).get('imdb_id')}")
                 print(f"  Rating: {sample.get('ratings', {}).get('vote_average')}")
-                print(f"  Year: {sample.get('release_info', {}).get('year')}")
-                print(f"  Decade: {sample.get('release_info', {}).get('decade')}")
-                print(f"  Budget Category: {sample.get('financial', {}).get('budget_category')}")
-                print(f"  Quality Tier: {sample.get('ratings', {}).get('quality_tier')}")
+                print(f"  Year: {sample.get('release_info', {}).get('year')}")                       #changed depth
+                print(f"  Decade: {sample.get('release_info', {}).get('decade')}")                   #added
+                print(f"  Budget Category: {sample.get('financial', {}).get('budget_category')}")    #added
+                print(f"  Quality Tier: {sample.get('ratings', {}).get('quality_tier')}")            #added
             else:
                 print("No documents found")
                 
