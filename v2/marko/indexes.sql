@@ -22,14 +22,13 @@ db.movies_optimized.createIndex(
 
 db.movies_optimized.createIndex(
     {
-        "release_info.decade": 1,
         "content_info.genres": 1,
-        "ratings.vote_average": -1
+        "release_info.decade": 1,
+        "ratings.vote_average": 1
     },
-    { 
-        name: "idx_decade_genre_rating",
-    }
+    { name: "idx_genre_decade_rating" }
 );
+
 
 // ============================================================================
 // GRUPA 3: INDEKSI ZA UPIT 3 (Meseci sa najviše blockbuster filmova)

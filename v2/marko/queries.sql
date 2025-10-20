@@ -42,9 +42,7 @@ db.movies.aggregate([
       "ratings.vote_average": { $gt: 0 }
     }
   },
-  {
-    $unwind: "$content_info.genres"
-  },
+  { $unwind: "$content_info.genres" },
   {
     $group: {
       _id: {
@@ -57,8 +55,8 @@ db.movies.aggregate([
   },
   {
     $sort: {
-      "_id.decade": 1,
-      "_id.genre": 1
+      "_id.genre": 1,
+      "_id.decade": 1
     }
   }
 ]);
