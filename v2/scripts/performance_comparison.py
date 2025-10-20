@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Performance Comparison Script - V1 vs V2 (Ispravljena verzija)
-Izvršava sve upite na obe verzije i prikazuje poređenje performansi
+Performance Comparison Script - V1 vs V2 (Corrected Version)
+Uses the actual optimized V2 queries from the optimization document
 """
 
 import time
 import json
 import os
 from pymongo import MongoClient
-from typing import Dict, List, Tuple
+from typing import Dict
 import statistics
 
 
@@ -36,8 +36,9 @@ class PerformanceComparator:
                 result = list(query_func(collection))
                 end = time.time()
                 times.append((end - start) * 1000)
+                print(f"  Iteration {i+1}: {times[-1]:.2f}ms")
             except Exception as e:
-                print(f"Error in {query_name} ({version}, iteration {i+1}): {str(e)}")
+                print(f"  ✗ Error in iteration {i+1}: {str(e)}")
                 times.append(None)
         
         return times
@@ -62,7 +63,7 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_1_v2(self, collection):
-        """V2 - Budget category index"""
+        """V2 - OPTIMIZED: Budget category + ROI calculation"""
         return collection.aggregate([
             {'$match': {
                 'financial.budget_category': {'$in': ['high', 'blockbuster']}
@@ -72,10 +73,11 @@ class PerformanceComparator:
                 '_id': '$production.companies',
                 'avg_revenue': {'$avg': '$financial.revenue'},
                 'total_movies': {'$sum': 1},
-                'total_revenue': {'$sum': '$financial.revenue'}
+                'total_revenue': {'$sum': '$financial.revenue'},
+                'avg_roi': {'$avg': '$financial.roi'}
             }},
             {'$sort': {'avg_revenue': -1}},
-            {'$limit': 10}
+            {'$limit': 20}
         ], allowDiskUse=True)
     
     # QUERY 2: Average Rating by Genre and Decade
@@ -108,7 +110,7 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_2_v2(self, collection):
-        """V2 - Precomputed decade field"""
+        """V2 - OPTIMIZED: Precomputed decade field"""
         return collection.aggregate([
             {'$match': {
                 'release_info.decade': {'$exists': True, '$ne': None}, 
@@ -123,8 +125,10 @@ class PerformanceComparator:
                 'avg_rating': {'$avg': '$ratings.vote_average'},
                 'movie_count': {'$sum': 1}
             }},
-            {'$sort': {'_id.decade': 1}},
-            {'$limit': 50}
+            {'$sort': {
+                '_id.decade': 1,
+                '_id.genre': 1
+            }}
         ], allowDiskUse=True)
     
     # QUERY 3: Blockbuster Movies by Month
@@ -145,11 +149,11 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_3_v2(self, collection):
-        """V2 - Budget category i precomputed month"""
+        """V2 - OPTIMIZED: Budget category + denormalized month"""
         return collection.aggregate([
             {'$match': {
                 'financial.budget_category': 'blockbuster', 
-                'release_info.month': {'$exists': True}
+                'release_info.month': {'$exists': True, '$ne': None}
             }},
             {'$group': {
                 '_id': '$release_info.month',
@@ -193,7 +197,7 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_4_v2(self, collection):
-        """V2 - Precomputed profit/roi i genre_pairs"""
+        """V2 - OPTIMIZED: Precomputed genre_pairs + profit/roi"""
         return collection.aggregate([
             {'$match': {
                 'financial.is_profitable': True, 
@@ -204,6 +208,7 @@ class PerformanceComparator:
                 '_id': '$content_info.genre_pairs',
                 'avg_profit': {'$avg': '$financial.profit'},
                 'avg_roi': {'$avg': '$financial.roi'},
+                'total_profit': {'$sum': '$financial.profit'},
                 'movie_count': {'$sum': 1}
             }},
             {'$match': {'movie_count': {'$gte': 10}}},
@@ -229,10 +234,10 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_5_v2(self, collection):
-        """V2 - Precomputed quality_tier index"""
+        """V2 - OPTIMIZED: Quality tier index (excellent only)"""
         return collection.aggregate([
             {'$match': {
-                'ratings.quality_tier': {'$in': ['good', 'excellent']}, 
+                'ratings.quality_tier': 'excellent', 
                 'content_info.runtime': {'$gt': 0}
             }},
             {'$unwind': '$production.countries'},
@@ -250,15 +255,15 @@ class PerformanceComparator:
     def run_comparison(self):
         """Izvršava sve upite i poredi performanse"""
         print("\n" + "="*70)
-        print("PERFORMANCE COMPARISON: V1 vs V2")
+        print("PERFORMANCE COMPARISON: V1 vs V2 (CORRECTED)")
         print("="*70)
         
         queries = [
-            ('query_1', self.query_1_v1, self.query_1_v2, 'Top 10 Profitable Companies'),
+            ('query_1', self.query_1_v1, self.query_1_v2, 'Top Profitable Companies (budget > 50M)'),
             ('query_2', self.query_2_v1, self.query_2_v2, 'Average Rating by Genre/Decade'),
             ('query_3', self.query_3_v1, self.query_3_v2, 'Blockbuster Movies by Month'),
             ('query_4', self.query_4_v1, self.query_4_v2, 'Most Profitable Genre Combinations'),
-            ('query_5', self.query_5_v1, self.query_5_v2, 'Average Runtime by Country'),
+            ('query_5', self.query_5_v1, self.query_5_v2, 'Average Runtime by Country (rating > 7)'),
         ]
         
         for query_name, query_v1_func, query_v2_func, description in queries:
@@ -266,11 +271,11 @@ class PerformanceComparator:
             print("-" * 70)
             
             # Meri V1
-            print(f"V1 (Originalna verzija):")
+            print(f"V1 (Original - no optimization):")
             v1_times = self.measure_query(self.v1_collection, query_v1_func, query_name, "V1")
             
             # Meri V2
-            print(f"V2 (Optimizovana verzija):")
+            print(f"\nV2 (Optimized - computed fields + indexes):")
             v2_times = self.measure_query(self.v2_collection, query_v2_func, query_name, "V2")
             
             # Sačuvaj rezultate
@@ -287,12 +292,13 @@ class PerformanceComparator:
                 v2_max = max(self.results[query_name]['v2'])
                 
                 improvement = ((v1_avg - v2_avg) / v1_avg) * 100
-                speedup = v1_avg / v2_avg
+                speedup = v1_avg / v2_avg if v2_avg > 0 else 0
                 
-                print(f"\n  V1: avg={v1_avg:.2f}ms, min={v1_min:.2f}ms, max={v1_max:.2f}ms")
+                print(f"\n  📊 RESULTS:")
+                print(f"  V1: avg={v1_avg:.2f}ms, min={v1_min:.2f}ms, max={v1_max:.2f}ms")
                 print(f"  V2: avg={v2_avg:.2f}ms, min={v2_min:.2f}ms, max={v2_max:.2f}ms")
-                print(f"  📊 Poboljšanje: {improvement:.1f}%")
-                print(f"  ⏱️  Ubrzanje: {speedup:.2f}x brže")
+                print(f"  ✓ Improvement: {improvement:.1f}%")
+                print(f"  ⚡ Speedup: {speedup:.2f}x faster")
             else:
                 print("  ✗ Error: Could not measure times")
         
@@ -359,12 +365,12 @@ if __name__ == "__main__":
     v2_collection = db['movies_optimized']
     
     # Proveri kolekcije
-    print("\nProveravajući kolekcije...")
+    print("\n🔍 Checking collections...")
     v1_count = v1_collection.count_documents({})
     v2_count = v2_collection.count_documents({})
     
-    print(f"✓ V1 (movies): {v1_count:,} dokumenta")
-    print(f"✓ V2 (movies_optimized): {v2_count:,} dokumenta")
+    print(f"✓ V1 (movies): {v1_count:,} documents")
+    print(f"✓ V2 (movies_optimized): {v2_count:,} documents")
     
     # Pokreni poređenje
     comparator = PerformanceComparator(v1_collection, v2_collection, iterations=3)
@@ -373,7 +379,7 @@ if __name__ == "__main__":
     # Prikaži summary
     summary = comparator.get_summary()
     print("\n" + "="*70)
-    print("SUMARNI IZVEŠTAJ")
+    print("📈 SUMMARY REPORT")
     print("="*70)
     
     total_v1 = 0
@@ -383,8 +389,8 @@ if __name__ == "__main__":
         print(f"\n{query}:")
         print(f"  V1: {metrics['v1_avg_ms']}ms")
         print(f"  V2: {metrics['v2_avg_ms']}ms")
-        print(f"  Poboljšanje: {metrics['improvement_percent']}%")
-        print(f"  Ubrzanje: {metrics['speedup_factor']}x")
+        print(f"  Improvement: {metrics['improvement_percent']}%")
+        print(f"  Speedup: {metrics['speedup_factor']}x")
         
         total_v1 += metrics['v1_avg_ms']
         total_v2 += metrics['v2_avg_ms']
@@ -393,11 +399,12 @@ if __name__ == "__main__":
     total_speedup = total_v1 / total_v2
     
     print("\n" + "="*70)
-    print(f"UKUPNO:")
-    print(f"  V1: {total_v1:.2f}ms")
-    print(f"  V2: {total_v2:.2f}ms")
-    print(f"  Ukupno poboljšanje: {total_improvement:.1f}%")
-    print(f"  Ukupno ubrzanje: {total_speedup:.2f}x")
+    print(f"🎯 OVERALL PERFORMANCE:")
+    print(f"  V1 Total: {total_v1:.2f}ms")
+    print(f"  V2 Total: {total_v2:.2f}ms")
+    print(f"  Total Improvement: {total_improvement:.1f}%")
+    print(f"  Total Speedup: {total_speedup:.2f}x")
+    print("="*70)
     
     # Eksportuj rezultate
     comparator.export_results('output/performance_results.json')

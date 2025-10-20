@@ -8,6 +8,7 @@ use SBP_DB
 db.movies_optimized.createIndex(
     {
         "financial.budget_category": 1,
+        "financial.revenue": 1,
         "production.companies": 1
     },
     { 

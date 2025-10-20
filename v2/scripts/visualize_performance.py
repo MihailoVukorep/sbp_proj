@@ -41,22 +41,18 @@ def print_performance_chart(query_results: list):
 
 
 def print_comparison_table(query_results: list):
-    print("\n" + "="*120)
+    print("\n" + "="*80)
     print("DETALJNO POREĐENJE - V1 vs V2")
-    print("="*120 + "\n")
+    print("="*80 + "\n")
     
-    print(f"{'Q':<3} {'V1 Avg':<12} {'V1 Min-Max':<20} {'V2 Avg':<12} {'V2 Min-Max':<20} {'Poboljšanje':<12} {'Ubrzanje':<10} {'Rezultata':<10}")
-    print("-" * 120)
+    print(f"{'Q':<3} {'V1 Avg (ms)':<15} {'V2 Avg (ms)':<15} {'Poboljšanje':<15} {'Ubrzanje':<10}")
+    print("-" * 80)
     
     for i, query in enumerate(query_results, 1):
-        v1_range = f"{query['v1_min_ms']:.1f}-{query['v1_max_ms']:.1f}ms"
-        v2_range = f"{query['v2_min_ms']:.1f}-{query['v2_max_ms']:.1f}ms"
-        
         improvement = f"{query['improvement_percent']:.1f}%"
         speedup = f"{query['speedup']:.2f}x"
-        results = f"V1: {query['v1_results']}, V2: {query['v2_results']}"
         
-        print(f"Q{i:<2} {query['v1_avg_ms']:<12.2f} {v1_range:<20} {query['v2_avg_ms']:<12.2f} {v2_range:<20} {improvement:<12} {speedup:<10} {results:<10}")
+        print(f"Q{i:<2} {query['v1_avg_ms']:<15.2f} {query['v2_avg_ms']:<15.2f} {improvement:<15} {speedup:<10}")
     
     print("\n")
 
@@ -67,28 +63,28 @@ def print_optimization_guide(query_results: list):
     print("="*80 + "\n")
     
     optimizations = {
-        "Query 1: Top 10 Profitable Companies": [
+        "Query 1: Average revenue per company (budget > 50M)": [
             "Precomputed budget_category (ne računaj u pipeline)",
             "Index na budget_category (umesto full collection scan)",
             "Denormalizovane vrednosti na top nivou",
         ],
-        "Query 2: Average Rating by Genre and Decade": [
+        "Query 2: Average rating per genre by decade": [
             "Precomputed decade field (ne računaj (year // 10) * 10)",
             "Denormalizovana godina i mesec",
             "Index na decade i genres",
         ],
-        "Query 3: Blockbuster Movies by Month": [
+        "Query 3: Months with most blockbuster movies": [
             "Precomputed budget_category (blockbuster)",
             "Denormalizovani mesec u release_info.month",
             "Compound index na (budget_category, month)",
         ],
-        "Query 4: Most Profitable Genre Combinations": [
+        "Query 4: Most profitable genre combinations": [
             "Precomputed profit i roi (ne računaj u pipeline)",
             "Precomputed genre_pairs (sve kombinacije od 2)",
             "Precomputed is_profitable boolean",
             "Index na genre_pairs (multikey index)",
         ],
-        "Query 5: Average Runtime by Country (Rating > 7)": [
+        "Query 5: Average runtime per country (rating > 7)": [
             "Precomputed quality_tier (mapiranje vote_average)",
             "Index na quality_tier (umesto vote_average filter)",
             "Denormalizovani runtime na top nivou",
@@ -100,7 +96,7 @@ def print_optimization_guide(query_results: list):
         improvements = optimizations.get(query_name, [])
         
         print(f"Query {i}: {query['name']}")
-        print(f"Opisanie: {query['description']}")
+        print(f"Opis: {query['description']}")
         print(f"Poboljšanje: {query['improvement_percent']:.1f}% ({query['speedup']:.2f}x)")
         print("\nPrimenjena poboljšanja:")
         for opt in improvements:
@@ -121,9 +117,11 @@ def print_summary_statistics(data: dict):
     
     print(f"Performance poboljšanja:")
     print(f"  Ukupno poboljšanje: {data['total_improvement_percent']:.1f}%")
-    print(f"  Prosečno poboljšanje: {data['average_improvement']:.1f}%")
+    avg_improvement = sum(q['improvement_percent'] for q in data['queries']) / len(data['queries'])
+    print(f"  Prosečno poboljšanje: {avg_improvement:.1f}%")
     print(f"  Ukupno ubrzanje: {data['total_speedup']:.2f}x")
-    print(f"  Prosečno ubrzanje: {data['average_speedup']:.2f}x")
+    avg_speedup = sum(q['speedup'] for q in data['queries']) / len(data['queries'])
+    print(f"  Prosečno ubrzanje: {avg_speedup:.2f}x")
     print()
     
     print(f"Broj upita: {data['total_queries']}")
@@ -147,10 +145,11 @@ def generate_html_report(data: dict, output_file: Path):
                         <td>{q['v2_avg_ms']:.2f}</td>
                         <td class="{improvement_class}">{q['improvement_percent']:.1f}%</td>
                         <td>{q['speedup']:.2f}x</td>
-                        <td>{q['v1_results']}</td>
-                        <td>{q['v2_results']}</td>
                     </tr>
 """
+    
+    avg_improvement = sum(q['improvement_percent'] for q in queries) / len(queries)
+    avg_speedup = sum(q['speedup'] for q in queries) / len(queries)
     
     html_content = f"""<!DOCTYPE html>
 <html lang="sr">
@@ -196,9 +195,19 @@ def generate_html_report(data: dict, output_file: Path):
                 <div class="unit">brže u V2</div>
             </div>
             <div class="summary-card">
+                <h3>Prosečno poboljšanje</h3>
+                <div class="value">{avg_improvement:.1f}%</div>
+                <div class="unit">po upitu</div>
+            </div>
+            <div class="summary-card">
                 <h3>Ukupno ubrzanje</h3>
                 <div class="value">{data['total_speedup']:.2f}x</div>
                 <div class="unit">brže u V2</div>
+            </div>
+            <div class="summary-card">
+                <h3>Prosečno ubrzanje</h3>
+                <div class="value">{avg_speedup:.2f}x</div>
+                <div class="unit">po upitu</div>
             </div>
             <div class="summary-card">
                 <h3>V1 Ukupno vreme</h3>
@@ -233,8 +242,6 @@ def generate_html_report(data: dict, output_file: Path):
                         <th>V2 Avg (ms)</th>
                         <th>Poboljšanje</th>
                         <th>Ubrzanje</th>
-                        <th>V1 Rezultata</th>
-                        <th>V2 Rezultata</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -319,7 +326,7 @@ def generate_html_report(data: dict, output_file: Path):
 
 
 def main():
-    json_file = Path('performance_comparison_detailed.json')
+    json_file = Path('output/performance_comparison_detailed.json')
     
     if not json_file.exists():
         print("Greška: performance_comparison_detailed.json nije pronađen")

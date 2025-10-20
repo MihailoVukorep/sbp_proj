@@ -6,7 +6,8 @@ Solution: Computed budget_category, compound index (budget_category, companies)
 db.movies.aggregate([
   {
     $match: {
-      "financial.budget_category": { $in: ["high", "blockbuster"] }
+      "financial.budget_category": { $in: ["high", "blockbuster"] },
+      "financial.revenue": { $gt: 0 }
     }
   },
   {
@@ -18,7 +19,6 @@ db.movies.aggregate([
       avg_revenue: { $avg: "$financial.revenue" },
       total_movies: { $sum: 1 },
       total_revenue: { $sum: "$financial.revenue" },
-      avg_roi: { $avg: "$financial.roi" }
     }
   },
   {
