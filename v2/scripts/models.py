@@ -87,7 +87,7 @@ class OptimizedMovieDocument:
     def transform(cls, doc: Dict[str, Any]) -> Dict[str, Any]:  #modified
         release_date = cls.parse_date(doc.get('release_date'))
         
-        budget = doc.get('budget', 0)                           #?added
+        budget = doc.get('budget', 0)                           #?added ŠABLON PRORAČUNAVANJA (Computation Pattern)
         revenue = doc.get('revenue', 0)
         profit = revenue - budget
         roi = cls.calculate_roi(budget, revenue)
@@ -122,11 +122,11 @@ class OptimizedMovieDocument:
             
             "release_info": {
                 "status": doc.get('status', ''),
-                "year": release_date.get('year'),               #*modified
+                "year": release_date.get('year'),               #*modified Flattened izravnavanje release_date
                 "month": release_date.get('month'),
                 "day": release_date.get('day'),
                 "decade": release_date.get('decade'),
-                "full_date": release_date.get('full_date'),     #*modified
+                "full_date": release_date.get('full_date'),     #*modified Smanji dubinu release_date -> year, month, day, decade, full_date
                 
                 "original_language": doc.get('original_language', ''),
                 "spoken_languages": cls.parse_array_field(doc.get('spoken_languages', ''))
@@ -151,7 +151,7 @@ class OptimizedMovieDocument:
             "production": {
                 "companies": companies,
                 "countries": countries,
-                "company_count": len(companies),               #added
+                "company_count": len(companies),               #added 
                 "country_count": len(countries)                #added
             },
             
