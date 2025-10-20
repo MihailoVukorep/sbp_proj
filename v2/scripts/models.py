@@ -99,7 +99,7 @@ class OptimizedMovieDocument:
         quality_tier = cls.categorize_quality(vote_avg)
         
         genres = cls.parse_array_field(doc.get('genres', ''))
-        genre_pairs = cls.generate_genre_pairs(genres)
+        sorted_genres = sorted(genres)
         
         companies = cls.parse_array_field(doc.get('production_companies', ''))
         countries = cls.parse_array_field(doc.get('production_countries', ''))
@@ -136,7 +136,7 @@ class OptimizedMovieDocument:
                 "adult": doc.get('adult', False),
                 "runtime": runtime,
                 "genres": genres,
-                "genre_pairs": genre_pairs                      #added
+                "sorted_genres": sorted_genres                      #added
             },
             
             "financial": {

@@ -50,13 +50,12 @@ db.movies_optimized.createIndex(
 
 db.movies_optimized.createIndex(
     {
-        "financial.is_profitable": 1,
-        "content_info.genre_pairs": 1
-    },
-    { 
-        name: "idx_profitable_genre_pairs"
+        "financial.revenue": 1,
+        "financial.budget": 1,
+        "content_info.sorted_genres": 1
     }
 );
+
 
 // ============================================================================
 // GRUPA 5: INDEKSI ZA UPIT 5 (Prosečno trajanje po zemlji, ocena > 7, 100+ filmova)

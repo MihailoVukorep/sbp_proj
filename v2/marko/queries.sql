@@ -114,22 +114,20 @@ db.movies.aggregate([
 
 QUERY 4: Most profitable genre combinations
 ---------------------------------------------
-Bottleneck: Genre pair generation in pipeline (very slow), profit/roi calculation, no index
-Solution: Precomputed genre_pairs, computed profit/roi, multikey index on genre_pairs
+Bottleneck: Determinističko grupisanje po žanrovima ($sortArray u pipeline, sporo), profit/ROI računanje u pipeline, nema indeks.
+Solution: Precomputed sorted_genres polje u dokumentu, unapred izračunati profit i ROI, multikey indeks na sorted_genres → značajno ubrzava agregaciju bez promene rezultata.
 
-db.movies.aggregate([
+db.movies_optimized.aggregate([
   {
     $match: {
-      "financial.is_profitable": true,
-      "content_info.genre_pairs": { $exists: true, $ne: [] }
+      "financial.revenue": { $gt: 0 },
+      "financial.budget": { $gt: 0 },
+      "content_info.sorted_genres": { $exists: true, $ne: [] }
     }
   },
   {
-    $unwind: "$content_info.genre_pairs"
-  },
-  {
     $group: {
-      _id: "$content_info.genre_pairs",
+      _id: "$content_info.sorted_genres",
       avg_profit: { $avg: "$financial.profit" },
       avg_roi: { $avg: "$financial.roi" },
       total_profit: { $sum: "$financial.profit" },
@@ -142,7 +140,7 @@ db.movies.aggregate([
     }
   },
   {
-    $sort: { avg_roi: -1 }
+    $sort: { avg_profit: -1 }
   },
   {
     $limit: 20
