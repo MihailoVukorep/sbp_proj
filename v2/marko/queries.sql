@@ -3,7 +3,7 @@ QUERY 1: Average revenue per company (budget > 50M)
 Bottleneck: No index on budget, unwind on companies array, multiple aggregation stages
 Solution: Computed budget_category, compound index (budget_category, companies)
 
-db.movies.aggregate([
+db.movies_optimized.aggregate([
   {
     $match: {
       "financial.budget_category": { $in: ["high", "blockbuster"] },
@@ -35,7 +35,7 @@ QUERY 2: Average rating per genre by decade
 Bottleneck: Decade calculation in runtime, nested date structure, multiple unwinds
 Solution: Precomputed decade field, compound index (decade, genres, vote_average)
 
-db.movies.aggregate([
+db.movies_optimized.aggregate([
   {
     $match: {
       "release_info.decade": { $exists: true, $ne: null },
@@ -67,7 +67,7 @@ QUERY 3: Months with most blockbuster movies (budget > 100M)
 Bottleneck: Budget filtering without index, nested month extraction
 Solution: Computed budget_category, denormalized month field, compound index
 
-db.movies.aggregate([
+db.movies_optimized.aggregate([
   {
     $match: {
       "financial.budget_category": "blockbuster",
