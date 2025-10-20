@@ -19,9 +19,9 @@ db.movies_optimized.createIndex(
 
 db.movies_optimized.createIndex(
     {
-        "content_info.genres": 1,
         "release_info.decade": 1,
-        "ratings.vote_average": 1
+        "ratings.vote_average": 1,
+        "content_info.genres": 1
     },
     { name: "idx_genre_decade_rating" }
 );
@@ -49,7 +49,10 @@ db.movies_optimized.createIndex(
     {
         "financial.revenue": 1,
         "financial.budget": 1,
-        "content_info.sorted_genres": 1
+        "content_info.sorted_genres": 1,
+
+        "financial.profit": 1,
+        "financial.roi": 1
     }
 );
 
@@ -59,12 +62,10 @@ db.movies_optimized.createIndex(
 // ============================================================================
 
 db.movies_optimized.createIndex(
-    {
-        "ratings.quality_tier": 1,
-        "production.countries": 1,
-        "content_info.runtime": 1
-    },
-    { 
-        name: "idx_quality_countries_runtime",
-    }
+  {
+    "production.countries": 1,
+    "content_info.runtime": 1,
+    "ratings.quality_tier": 1  
+  },
+  { name: "idx_ESR_countries_runtime_quality" }
 );

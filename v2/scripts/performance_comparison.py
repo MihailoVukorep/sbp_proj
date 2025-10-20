@@ -241,10 +241,14 @@ class PerformanceComparator:
     
     # QUERY 5: Average Runtime by Country
     def query_5_v1(self, collection):
-        """V1 - Runtime i quality calculation u pipeline"""
+        """V1 - Direktno iz queries.sql - unwind pa match"""
         return collection.aggregate([
-            {'$match': {'ratings.vote_average': {'$gt': 7.0}}},
             {'$unwind': '$production.countries'},
+            {'$match': {
+                'production.countries': {'$ne': ''},
+                'content_info.runtime': {'$gt': 0},
+                'ratings.vote_average': {'$gt': 7.0}
+            }},
             {'$group': {
                 '_id': '$production.countries',
                 'avg_runtime': {'$avg': '$content_info.runtime'},

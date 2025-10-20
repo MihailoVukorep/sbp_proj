@@ -169,32 +169,24 @@ db.movies.aggregate([
 // ============================================================================
 db.movies.aggregate([
   { $unwind: "$production.countries" },
-  { $match: { "production.countries": { $ne: "" }, /* ... */ } },
+  {
+    $match: {
+      "production.countries": { $ne: "" },
+      "content_info.runtime": { $gt: 0 },
+      "ratings.vote_average": { $gt: 7.0 } 
+    }
+  },
   {
     $group: {
       _id: "$production.countries",
-      totalMovieCount: { $sum: 1 },
-      totalRuntimeOver7: {
-        $sum: {
-          $cond: { if: { $gt: ["$ratings.vote_average", 7.0] }, then: "$content_info.runtime", else: 0 }
-        }
-      },
-      movieCountOver7: {
-        $sum: {
-          $cond: { if: { $gt: ["$ratings.vote_average", 7.0] }, then: 1, else: 0 }
-        }
-      }
+      avg_runtime: { $avg: "$content_info.runtime" },
+      movie_count: { $sum: 1 },
+      avg_rating: { $avg: "$ratings.vote_average" }
     }
   },
   {
-    $match: {
-      totalMovieCount: { $gt: 100 }
-    }
+    $match: { movie_count: { $gte: 100 } }
   },
-  {
-    $project: {
-      avgRuntimeOver7: { $divide: ["$totalRuntimeOver7", "$movieCountOver7"] }
-    }
-  },
-  { $sort: { avgRuntimeOver7: -1 } }
+  { $sort: { avg_runtime: -1 } },
+  { $limit: 20 }
 ]);

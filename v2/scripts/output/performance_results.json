@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-10-20 18:13:38",
+  "iterations": 3,
+  "queries": {
+    "query_1": {
+      "v1_avg_ms": 1014.73,
+      "v2_avg_ms": 18.33,
+      "improvement_percent": 98.2,
+      "speedup_factor": 55.36,
+      "v1_min_ms": 994.6,
+      "v1_max_ms": 1050.61,
+      "v2_min_ms": 16.22,
+      "v2_max_ms": 21.22
+    },
+    "query_2": {
+      "v1_avg_ms": 3112.95,
+      "v2_avg_ms": 2803.83,
+      "improvement_percent": 9.9,
+      "speedup_factor": 1.11,
+      "v1_min_ms": 3057.22,
+      "v1_max_ms": 3162.91,
+      "v2_min_ms": 2744.71,
+      "v2_max_ms": 2874.17
+    },
+    "query_3": {
+      "v1_avg_ms": 849.2,
+      "v2_avg_ms": 4.8,
+      "improvement_percent": 99.4,
+      "speedup_factor": 177.05,
+      "v1_min_ms": 848.11,
+      "v1_max_ms": 850.47,
+      "v2_min_ms": 4.65,
+      "v2_max_ms": 5.04
+    },
+    "query_4": {
+      "v1_avg_ms": 1159.37,
+      "v2_avg_ms": 154.44,
+      "improvement_percent": 86.7,
+      "speedup_factor": 7.51,
+      "v1_min_ms": 1103.73,
+      "v1_max_ms": 1262.3,
+      "v2_min_ms": 150.88,
+      "v2_max_ms": 157.01
+    },
+    "query_5": {
+      "v1_avg_ms": 1482.62,
+      "v2_avg_ms": 728.65,
+      "improvement_percent": 50.9,
+      "speedup_factor": 2.03,
+      "v1_min_ms": 1470.78,
+      "v1_max_ms": 1499.78,
+      "v2_min_ms": 710.73,
+      "v2_max_ms": 743.29
+    }
+  },
+  "totals": {
+    "total_v1_ms": 7618.87,
+    "total_v2_ms": 3710.05,
+    "total_improvement_percent": 51.3,
+    "total_speedup": 2.05
+  }
+}
