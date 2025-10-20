@@ -153,16 +153,15 @@ QUERY 5: Average runtime per country (rating > 7, 100+ movies)
 Bottleneck: Rating filter without index, unwind on countries, two-pass aggregation
 Solution: Precomputed quality_tier, compound index (quality_tier, countries, runtime)
 
-db.movies.aggregate([
+db.movies_optimized.aggregate([
   {
     $match: {
       "ratings.quality_tier": "excellent",
-      "content_info.runtime": { $gt: 0 }
+      "content_info.runtime": { $gt: 0 },
+      "production.countries": { $exists: true, $ne: [] }
     }
   },
-  {
-    $unwind: "$production.countries"
-  },
+  { $unwind: "$production.countries" },
   {
     $group: {
       _id: "$production.countries",
@@ -172,16 +171,10 @@ db.movies.aggregate([
     }
   },
   {
-    $match: {
-      movie_count: { $gte: 100 }
-    }
+    $match: { movie_count: { $gte: 100 } }
   },
-  {
-    $sort: { avg_runtime: -1 }
-  },
-  {
-    $limit: 20
-  }
+  { $sort: { avg_runtime: -1 } },
+  { $limit: 20 }
 ]);
 
 

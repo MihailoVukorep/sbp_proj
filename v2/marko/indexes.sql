@@ -1,6 +1,3 @@
-use SBP_DB
-
-
 // ============================================================================
 // GRUPA 1: INDEKSI ZA UPIT 1 (Prosečan prihod po kompaniji, budžet > 50M)
 // ============================================================================
@@ -69,38 +66,5 @@ db.movies_optimized.createIndex(
     },
     { 
         name: "idx_quality_countries_runtime",
-    }
-);
-
-
-
-
----------------------------------------------------------------------------------------------
-
-// ============================================================================
-// GRUPA 6: DODATNI KORISNI INDEKSI
-// ============================================================================
-
-
-// 6.1. Text Index: Za tekstualnu pretragu
-db.movies.createIndex(
-    {
-        "title": "text",
-        "overview": "text"
-    },
-    { 
-        name: "idx_text_search",
-        default_language: "english",
-    }
-);
-
-// 6.2. Single Field Index: IMDB ID (za lookup)
-db.movies.createIndex(
-    {
-        "media.imdb_id": 1
-    },
-    { 
-        name: "idx_imdb_id",
-        sparse: true,
     }
 );

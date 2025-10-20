@@ -63,18 +63,18 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_1_v2(self, collection):
-        """V2 - OPTIMIZED: Budget category + ROI calculation"""
+        """V2 - OPTIMIZED: Budget category + compound index"""
         return collection.aggregate([
             {'$match': {
-                'financial.budget_category': {'$in': ['high', 'blockbuster']}
+                'financial.budget_category': {'$in': ['high', 'blockbuster']},
+                'financial.revenue': {'$gt': 0}
             }},
             {'$unwind': '$production.companies'},
             {'$group': {
                 '_id': '$production.companies',
                 'avg_revenue': {'$avg': '$financial.revenue'},
                 'total_movies': {'$sum': 1},
-                'total_revenue': {'$sum': '$financial.revenue'},
-                'avg_roi': {'$avg': '$financial.roi'}
+                'total_revenue': {'$sum': '$financial.revenue'}
             }},
             {'$sort': {'avg_revenue': -1}},
             {'$limit': 20}
@@ -113,21 +113,21 @@ class PerformanceComparator:
         """V2 - OPTIMIZED: Precomputed decade field"""
         return collection.aggregate([
             {'$match': {
-                'release_info.decade': {'$exists': True, '$ne': None}, 
+                'release_info.decade': {'$exists': True, '$ne': None},
                 'ratings.vote_average': {'$gt': 0}
             }},
             {'$unwind': '$content_info.genres'},
             {'$group': {
                 '_id': {
-                    'genre': '$content_info.genres', 
+                    'genre': '$content_info.genres',
                     'decade': '$release_info.decade'
                 },
                 'avg_rating': {'$avg': '$ratings.vote_average'},
                 'movie_count': {'$sum': 1}
             }},
             {'$sort': {
-                '_id.decade': 1,
-                '_id.genre': 1
+                '_id.genre': 1,
+                '_id.decade': 1
             }}
         ], allowDiskUse=True)
     
@@ -152,7 +152,7 @@ class PerformanceComparator:
         """V2 - OPTIMIZED: Budget category + denormalized month"""
         return collection.aggregate([
             {'$match': {
-                'financial.budget_category': 'blockbuster', 
+                'financial.budget_category': 'blockbuster',
                 'release_info.month': {'$exists': True, '$ne': None}
             }},
             {'$group': {
@@ -161,7 +161,28 @@ class PerformanceComparator:
                 'avg_budget': {'$avg': '$financial.budget'},
                 'total_revenue': {'$sum': '$financial.revenue'}
             }},
-            {'$sort': {'blockbuster_count': -1}}
+            {'$sort': {'blockbuster_count': -1}},
+            {'$addFields': {
+                'month_name': {
+                    '$switch': {
+                        'branches': [
+                            {'case': {'$eq': ['$_id', 1]}, 'then': 'Januar'},
+                            {'case': {'$eq': ['$_id', 2]}, 'then': 'Februar'},
+                            {'case': {'$eq': ['$_id', 3]}, 'then': 'Mart'},
+                            {'case': {'$eq': ['$_id', 4]}, 'then': 'April'},
+                            {'case': {'$eq': ['$_id', 5]}, 'then': 'Maj'},
+                            {'case': {'$eq': ['$_id', 6]}, 'then': 'Jun'},
+                            {'case': {'$eq': ['$_id', 7]}, 'then': 'Jul'},
+                            {'case': {'$eq': ['$_id', 8]}, 'then': 'Avgust'},
+                            {'case': {'$eq': ['$_id', 9]}, 'then': 'Septembar'},
+                            {'case': {'$eq': ['$_id', 10]}, 'then': 'Oktobar'},
+                            {'case': {'$eq': ['$_id', 11]}, 'then': 'Novembar'},
+                            {'case': {'$eq': ['$_id', 12]}, 'then': 'Decembar'}
+                        ],
+                        'default': 'Nepoznato'
+                    }
+                }
+            }}
         ], allowDiskUse=True)
     
     # QUERY 4: Most Profitable Genre Combinations
@@ -197,22 +218,24 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_4_v2(self, collection):
-        """V2 - OPTIMIZED: Precomputed genre_pairs + profit/roi"""
+        """V2 - OPTIMIZED: Precomputed sorted_genres + profit/roi"""
         return collection.aggregate([
             {'$match': {
-                'financial.is_profitable': True, 
-                'content_info.genre_pairs': {'$exists': True, '$ne': []}
+                'financial.revenue': {'$gt': 0},
+                'financial.budget': {'$gt': 0},
+                'content_info.sorted_genres': {'$exists': True, '$ne': []}
             }},
-            {'$unwind': '$content_info.genre_pairs'},
             {'$group': {
-                '_id': '$content_info.genre_pairs',
+                '_id': '$content_info.sorted_genres',
                 'avg_profit': {'$avg': '$financial.profit'},
                 'avg_roi': {'$avg': '$financial.roi'},
                 'total_profit': {'$sum': '$financial.profit'},
                 'movie_count': {'$sum': 1}
             }},
-            {'$match': {'movie_count': {'$gte': 10}}},
-            {'$sort': {'avg_roi': -1}},
+            {'$match': {
+                'movie_count': {'$gte': 10}
+            }},
+            {'$sort': {'avg_profit': -1}},
             {'$limit': 20}
         ], allowDiskUse=True)
     
@@ -234,11 +257,12 @@ class PerformanceComparator:
         ], allowDiskUse=True)
     
     def query_5_v2(self, collection):
-        """V2 - OPTIMIZED: Quality tier index (excellent only)"""
+        """V2 - OPTIMIZED: Quality tier index + compound index"""
         return collection.aggregate([
             {'$match': {
-                'ratings.quality_tier': 'excellent', 
-                'content_info.runtime': {'$gt': 0}
+                'ratings.quality_tier': 'excellent',
+                'content_info.runtime': {'$gt': 0},
+                'production.countries': {'$exists': True, '$ne': []}
             }},
             {'$unwind': '$production.countries'},
             {'$group': {
