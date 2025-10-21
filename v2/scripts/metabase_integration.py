@@ -5,6 +5,13 @@ import time
 import sys
 import io
 
+# Importuj sve queries
+from queries.query_1 import QUERY_1_V1, QUERY_1_V2, QUERY_NAME as Q1_NAME
+from queries.query_2 import QUERY_2_V1, QUERY_2_V2, QUERY_NAME as Q2_NAME
+from queries.query_3 import QUERY_3_V1, QUERY_3_V2, QUERY_NAME as Q3_NAME
+from queries.query_4 import QUERY_4_V1, QUERY_4_V2, QUERY_NAME as Q4_NAME
+from queries.query_5 import QUERY_5_V1, QUERY_5_V2, QUERY_NAME as Q5_NAME
+
 
 class MetabaseIntegration:
     
@@ -260,7 +267,7 @@ class MetabaseIntegration:
         
         # Kreiraj dashboard
         print("2. KREIRANJE DASHBOARD-A\n")
-        dashboard_id = self.create_dashboard("Performance Analiza V1 vs V2 - Poređenje Upita")
+        dashboard_id = self.create_dashboard("Upiti dashboard")
         if not dashboard_id:
             return False
         
@@ -271,141 +278,29 @@ class MetabaseIntegration:
         
         queries = [
             {
-                "name": "Query 1: Top 10 Profitable Companies",
-                "v1": [
-                    {"$match": {"financial.budget": {"$gt": 50000000}, "financial.revenue": {"$gt": 0}}},
-                    {"$unwind": "$production.companies"},
-                    {"$group": {
-                        "_id": "$production.companies",
-                        "avg_revenue": {"$avg": "$financial.revenue"},
-                        "total_movies": {"$sum": 1},
-                        "total_revenue": {"$sum": "$financial.revenue"}
-                    }},
-                    {"$sort": {"avg_revenue": -1}},
-                    {"$limit": 20}
-                ],
-                "v2": [
-                    {"$match": {"financial.budget_category": {"$in": ["high", "blockbuster"]}}},
-                    {"$unwind": "$production.companies"},
-                    {"$group": {
-                        "_id": "$production.companies",
-                        "avg_revenue": {"$avg": "$financial.revenue"},
-                        "total_movies": {"$sum": 1},
-                        "total_revenue": {"$sum": "$financial.revenue"}
-                    }},
-                    {"$sort": {"avg_revenue": -1}},
-                    {"$limit": 20}
-                ]
+                "name": Q1_NAME,
+                "v1": QUERY_1_V1,
+                "v2": QUERY_1_V2
             },
             {
-                "name": "Query 2: Average Rating by Genre and Decade",
-                "v1": [
-                    {"$match": {"release_info.release_date.year": {"$exists": True, "$ne": None}, "ratings.vote_average": {"$gt": 0}}},
-                    {"$unwind": "$content_info.genres"},
-                    {"$addFields": {
-                        "decade": {"$multiply": [{"$floor": {"$divide": ["$release_info.release_date.year", 10]}}, 10]}
-                    }},
-                    {"$group": {
-                        "_id": {"genre": "$content_info.genres", "decade": "$decade"},
-                        "avg_rating": {"$avg": "$ratings.vote_average"},
-                        "movie_count": {"$sum": 1}
-                    }},
-                    {"$sort": {"_id.decade": 1}}
-                ],
-                "v2": [
-                    {"$match": {"release_info.decade": {"$exists": True, "$ne": None}, "ratings.vote_average": {"$gt": 0}}},
-                    {"$unwind": "$content_info.genres"},
-                    {"$group": {
-                        "_id": {"genre": "$content_info.genres", "decade": "$release_info.decade"},
-                        "avg_rating": {"$avg": "$ratings.vote_average"},
-                        "movie_count": {"$sum": 1}
-                    }},
-                    {"$sort": {"_id.decade": 1}}
-                ]
+                "name": Q2_NAME,
+                "v1": QUERY_2_V1,
+                "v2": QUERY_2_V2
             },
             {
-                "name": "Query 3: Blockbuster Movies by Month",
-                "v1": [
-                    {"$match": {"financial.budget": {"$gt": 100000000}, "release_info.release_date.month": {"$exists": True}}},
-                    {"$group": {
-                        "_id": "$release_info.release_date.month",
-                        "blockbuster_count": {"$sum": 1},
-                        "avg_budget": {"$avg": "$financial.budget"},
-                        "total_revenue": {"$sum": "$financial.revenue"}
-                    }},
-                    {"$sort": {"blockbuster_count": -1}}
-                ],
-                "v2": [
-                    {"$match": {"financial.budget_category": "blockbuster", "release_info.month": {"$exists": True}}},
-                    {"$group": {
-                        "_id": "$release_info.month",
-                        "blockbuster_count": {"$sum": 1},
-                        "avg_budget": {"$avg": "$financial.budget"},
-                        "total_revenue": {"$sum": "$financial.revenue"}
-                    }},
-                    {"$sort": {"blockbuster_count": -1}}
-                ]
+                "name": Q3_NAME,
+                "v1": QUERY_3_V1,
+                "v2": QUERY_3_V2
             },
             {
-                "name": "Query 4: Most Profitable Genre Combinations",
-                "v1": [
-                    {"$match": {"financial.revenue": {"$gt": 0}, "financial.budget": {"$gt": 0}, "content_info.genres": {"$exists": True, "$ne": []}}},
-                    {"$addFields": {
-                        "profit": {"$subtract": ["$financial.revenue", "$financial.budget"]},
-                        "roi": {"$multiply": [{"$divide": [{"$subtract": ["$financial.revenue", "$financial.budget"]}, "$financial.budget"]}, 100]}
-                    }},
-                    {"$group": {
-                        "_id": "$content_info.genres",
-                        "avg_profit": {"$avg": "$profit"},
-                        "avg_roi": {"$avg": "$roi"},
-                        "movie_count": {"$sum": 1}
-                    }},
-                    {"$match": {"movie_count": {"$gte": 10}}},
-                    {"$sort": {"avg_profit": -1}},
-                    {"$limit": 20}
-                ],
-                "v2": [
-                    {"$match": {"financial.is_profitable": True, "content_info.genre_pairs": {"$exists": True, "$ne": []}}},
-                    {"$unwind": "$content_info.genre_pairs"},
-                    {"$group": {
-                        "_id": "$content_info.genre_pairs",
-                        "avg_profit": {"$avg": "$financial.profit"},
-                        "avg_roi": {"$avg": "$financial.roi"},
-                        "movie_count": {"$sum": 1}
-                    }},
-                    {"$match": {"movie_count": {"$gte": 10}}},
-                    {"$sort": {"avg_roi": -1}},
-                    {"$limit": 20}
-                ]
+                "name": Q4_NAME,
+                "v1": QUERY_4_V1,
+                "v2": QUERY_4_V2
             },
             {
-                "name": "Query 5: Average Runtime by Country (Rating > 7)",
-                "v1": [
-                    {"$unwind": "$production.countries"},
-                    {"$group": {
-                        "_id": "$production.countries",
-                        "totalMovieCount": {"$sum": 1},
-                        "totalRuntimeOver7": {"$sum": {"$cond": [{"$gt": ["$ratings.vote_average", 7.0]}, "$content_info.runtime", 0]}},
-                        "movieCountOver7": {"$sum": {"$cond": [{"$gt": ["$ratings.vote_average", 7.0]}, 1, 0]}}
-                    }},
-                    {"$match": {"totalMovieCount": {"$gte": 100}}},
-                    {"$project": {"avgRuntimeOver7": {"$divide": ["$totalRuntimeOver7", "$movieCountOver7"]}}},
-                    {"$sort": {"avgRuntimeOver7": -1}},
-                    {"$limit": 20}
-                ],
-                "v2": [
-                    {"$match": {"ratings.quality_tier": {"$in": ["good", "excellent"]}, "content_info.runtime": {"$gt": 0}}},
-                    {"$unwind": "$production.countries"},
-                    {"$group": {
-                        "_id": "$production.countries",
-                        "avg_runtime": {"$avg": "$content_info.runtime"},
-                        "movie_count": {"$sum": 1},
-                        "avg_rating": {"$avg": "$ratings.vote_average"}
-                    }},
-                    {"$match": {"movie_count": {"$gte": 100}}},
-                    {"$sort": {"avg_runtime": -1}},
-                    {"$limit": 20}
-                ]
+                "name": Q5_NAME,
+                "v1": QUERY_5_V1,
+                "v2": QUERY_5_V2
             }
         ]
         
