@@ -5,7 +5,6 @@ import time
 import sys
 import io
 
-# Importuj sve queries
 from queries.query_1 import QUERY_1_V1, QUERY_1_V2, QUERY_NAME as Q1_NAME
 from queries.query_2 import QUERY_2_V1, QUERY_2_V2, QUERY_NAME as Q2_NAME
 from queries.query_3 import QUERY_3_V1, QUERY_3_V2, QUERY_NAME as Q3_NAME
@@ -26,10 +25,10 @@ class MetabaseIntegration:
         self.db_id_v2 = None
     
     def authenticate(self) -> bool:
-        """Autentifikuj se na Metabase"""
+        """Authenticate with Metabase"""
         try:
-            print(f"Konektovanje na Metabase: {self.base_url}")
-            print(f"Korisnik: {self.username}")
+            print(f"Connecting to Metabase: {self.base_url}")
+            print(f"Username: {self.username}")
             
             response = requests.post(
                 f"{self.base_url}/api/session",
@@ -39,41 +38,39 @@ class MetabaseIntegration:
             
             if response.status_code == 200:
                 self.session_token = response.json().get('id')
-                print(f"✓ Autentifikacija uspešna\n")
+                print(f"Authentication successful\n")
                 return True
             elif response.status_code == 401:
-                print(f"✗ Autentifikacija neuspešna: 401 Unauthorized")
-                print(f"  Proverite kredencijale!")
+                print(f"Authentication failed: 401 Unauthorized")
+                print(f"  Check your credentials!")
                 return False
             else:
-                print(f"✗ Autentifikacija neuspešna: {response.status_code}")
+                print(f"Authentication failed: {response.status_code}")
                 return False
         except requests.exceptions.ConnectionError:
-            print(f"✗ Nije moguće konekcija sa Metabase na {self.base_url}")
+            print(f"Cannot connect to Metabase at {self.base_url}")
             return False
         except Exception as e:
-            print(f"✗ Greška pri autentifikaciji: {str(e)}")
+            print(f"Error during authentication: {str(e)}")
             return False
     
     def setup_mongodb_connection(self, db_name: str, connection_string: str) -> Optional[int]:
-        """Postavi konekciju na lokalnu MongoDB"""
+        """Setup connection to local MongoDB"""
         try:
             headers = {'X-Metabase-Session': self.session_token}
             
-            # Prvo verifikuj MongoDB konekciju
-            print(f"Verifikujem MongoDB konekciju: {db_name}")
+            print(f"Verifying MongoDB connection: {db_name}")
             try:
                 from pymongo import MongoClient
                 test_client = MongoClient(connection_string, serverSelectionTimeoutMS=3000)
                 test_client.admin.command('ping')
-                print("✓ MongoDB je dostupna")
+                print("MongoDB is available")
             except Exception as mongo_error:
-                print(f"✗ MongoDB nije dostupna: {str(mongo_error)}")
+                print(f"MongoDB is not available: {str(mongo_error)}")
                 return None
             
-            print(f"Konfigurišem MongoDB u Metabase-u...\n")
+            print(f"Configuring MongoDB in Metabase...\n")
             
-            # Proveravamo da li konekcija već postoji
             try:
                 db_list_response = requests.get(
                     f"{self.base_url}/api/database",
@@ -84,7 +81,6 @@ class MetabaseIntegration:
                 existing_db = None
                 if db_list_response.status_code == 200:
                     db_list = db_list_response.json()
-                    # Proveri da li je response zaista lista
                     if isinstance(db_list, list):
                         for db in db_list:
                             if isinstance(db, dict) and db.get('name') == db_name:
@@ -92,22 +88,20 @@ class MetabaseIntegration:
                                 break
                 
                 if existing_db:
-                    print(f"✓ Pronašao sam postojeću konekciju: {db_name} (ID: {existing_db['id']})\n")
+                    print(f"Found existing connection: {db_name} (ID: {existing_db['id']})\n")
                     return existing_db['id']
             except Exception as check_error:
-                print(f"  ⚠️  Nije moguće proveriti postojeće konekcije: {str(check_error)}")
-                print(f"  Nastavljam sa kreiranjem nove konekcije...\n")
+                print(f"  Could not verify existing connections: {str(check_error)}")
+                print(f"  Continuing with new connection...\n")
             
-            # Kreiramo novu konekciju sa host.docker.internal (za Windows/Mac Docker Desktop)
-            # Pokušaj sa više host opcija
             hosts_to_try = [
                 ("host.docker.internal", "Docker Desktop (Windows/Mac)"),
                 ("172.17.0.1", "Docker bridge gateway"),
-                ("localhost", "Direktna konekcija"),
+                ("localhost", "Direct connection"),
             ]
             
             for host_name, description in hosts_to_try:
-                print(f"  Pokušavam sa: {description} ({host_name})")
+                print(f"  Trying: {description} ({host_name})")
                 
                 payload = {
                     "name": db_name,
@@ -123,7 +117,7 @@ class MetabaseIntegration:
                 max_retries = 2
                 for attempt in range(max_retries):
                     try:
-                        print(f"    Pokušaj {attempt + 1}/{max_retries}...")
+                        print(f"    Attempt {attempt + 1}/{max_retries}...")
                         
                         response = requests.post(
                             f"{self.base_url}/api/database",
@@ -134,45 +128,43 @@ class MetabaseIntegration:
                         
                         if response.status_code == 200:
                             db_id = response.json().get('id')
-                            print(f"  ✓ MongoDB konekcija uspešno kreirana sa {host_name} (ID: {db_id})\n")
+                            print(f"  MongoDB connection created with {host_name} (ID: {db_id})\n")
                             return db_id
                         elif response.status_code == 400:
                             error_msg = response.json().get('message', response.text)
-                            print(f"    ✗ Bad Request: {error_msg[:100]}")
+                            print(f"    Bad Request: {error_msg[:100]}")
                             if attempt < max_retries - 1:
                                 time.sleep(2)
                         else:
-                            print(f"    ✗ Greška: {response.status_code}")
+                            print(f"    Error: {response.status_code}")
                             if attempt < max_retries - 1:
                                 time.sleep(2)
                     
                     except requests.exceptions.Timeout:
-                        print(f"    ✗ Timeout")
+                        print(f"    Timeout")
                         if attempt < max_retries - 1:
                             time.sleep(2)
                     except Exception as e:
-                        print(f"    ✗ Greška: {str(e)[:100]}")
+                        print(f"    Error: {str(e)[:100]}")
                         if attempt < max_retries - 1:
                             time.sleep(2)
                 
-                print()  # Novi red između pokušaja
+                print()
             
-            print(f"✗ Nije bilo moguće konekcija sa MongoDB sa nijednom opcijom")
+            print(f"Could not connect to MongoDB with any option")
             return None
             
         except Exception as e:
-            print(f"✗ Greška u setup_mongodb_connection: {str(e)}")
+            print(f"Error in setup_mongodb_connection: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
     
     def create_query(self, query_name: str, query_pipeline: str, db_id: int, collection_name: str) -> Optional[int]:
-        """Kreiraj novi upit u Metabase"""
+        """Create a new query in Metabase"""
         try:
             headers = {'X-Metabase-Session': self.session_token}
             
-            # Konvertuj aggregation pipeline u MongoDB native query format
-            # Metabase očekuje "collection" field sa imenom kolekcije
             payload = {
                 "name": query_name,
                 "description": f"Performance Query: {query_name}",
@@ -198,19 +190,19 @@ class MetabaseIntegration:
             
             if response.status_code == 200:
                 query_id = response.json().get('id')
-                print(f"  ✓ Upit kreiran: {query_name} (ID: {query_id})")
+                print(f"  Query created: {query_name} (ID: {query_id})")
                 return query_id
             else:
                 error_msg = response.text[:200]
-                print(f"  ✗ Greška pri kreiranju upita: {response.status_code}")
+                print(f"  Error creating query: {response.status_code}")
                 print(f"    {error_msg}")
                 return None
         except Exception as e:
-            print(f"  ✗ Greška: {str(e)}")
+            print(f"  Error: {str(e)}")
             return None
     
     def create_dashboard(self, dashboard_name: str) -> Optional[int]:
-        """Kreiraj novi dashboard"""
+        """Create a new dashboard"""
         try:
             headers = {'X-Metabase-Session': self.session_token}
             
@@ -228,19 +220,19 @@ class MetabaseIntegration:
             
             if response.status_code == 200:
                 dashboard_id = response.json().get('id')
-                print(f"✓ Dashboard kreiran: {dashboard_name} (ID: {dashboard_id})\n")
+                print(f"Dashboard created: {dashboard_name} (ID: {dashboard_id})\n")
                 return dashboard_id
             else:
-                print(f"✗ Greška pri kreiranju dashboarda: {response.status_code}")
+                print(f"Error creating dashboard: {response.status_code}")
                 return None
         except Exception as e:
-            print(f"✗ Greška: {str(e)}")
+            print(f"Error: {str(e)}")
             return None
     
     def setup_performance_comparison_dashboard(self):
-        """Postavi dashboard sa poređenjem performansi V1 vs V2"""
+        """Setup dashboard with performance comparison V1 vs V2"""
         print("\n" + "="*80)
-        print("POSTAVLJANJE METABASE PERFORMANCE DASHBOARD-A (V1 vs V2)")
+        print("SETTING UP METABASE PERFORMANCE DASHBOARD (V1 vs V2)")
         print("="*80 + "\n")
         
         if not self.authenticate():
@@ -248,33 +240,30 @@ class MetabaseIntegration:
         
         time.sleep(2)
         
-        # Postavi konekcije na obe verzije
-        print("1. POSTAVLJANJE MONGODB KONEKCIJA\n")
+        print("1. SETTING UP MONGODB CONNECTIONS\n")
         
         self.db_id_v1 = self.setup_mongodb_connection("SBP_V1 (Original)", 
                                                        "mongodb://localhost:27017/SBP_DB")
         if not self.db_id_v1:
-            print("✗ Nije moguće konekcija na V1 bazu")
+            print("Cannot connect to V1 database")
             return False
         
         self.db_id_v2 = self.setup_mongodb_connection("SBP_V2 (Optimized)", 
                                                        "mongodb://localhost:27017/SBP_DB")
         if not self.db_id_v2:
-            print("✗ Nije moguće konekcija na V2 bazu")
+            print("Cannot connect to V2 database")
             return False
         
         time.sleep(2)
         
-        # Kreiraj dashboard
-        print("2. KREIRANJE DASHBOARD-A\n")
-        dashboard_id = self.create_dashboard("Upiti dashboard")
+        print("2. CREATING DASHBOARD\n")
+        dashboard_id = self.create_dashboard("Query Dashboard")
         if not dashboard_id:
             return False
         
         time.sleep(1)
         
-        # Definiši upite za obe verzije
-        print("3. KREIRANJE UPITA\n")
+        print("3. CREATING QUERIES\n")
         
         queries = [
             {
@@ -304,86 +293,81 @@ class MetabaseIntegration:
             }
         ]
         
-        # Kreiraj upite za obe verzije
-        print("\nV1 (Originalna verzija - kolekcija 'movies'):")
+        print("\nV1 (Original version - 'movies' collection):")
         for query_config in queries:
             time.sleep(1)
             query_name_v1 = f"[V1] {query_config['name']}"
             self.create_query(query_name_v1, json.dumps(query_config['v1']), self.db_id_v1, "movies")
         
-        print("\nV2 (Optimizovana verzija - kolekcija 'movies_optimized'):")
+        print("\nV2 (Optimized version - 'movies_optimized' collection):")
         for query_config in queries:
             time.sleep(1)
             query_name_v2 = f"[V2] {query_config['name']}"
             self.create_query(query_name_v2, json.dumps(query_config['v2']), self.db_id_v2, "movies_optimized")
         
-        # Prikazi rezultate
         print("\n" + "="*80)
-        print("✓ METABASE DASHBOARD JE USPEŠNO KREIRAN!")
+        print("METABASE DASHBOARD CREATED SUCCESSFULLY!")
         print("="*80)
         print(f"\nDashboard: {self.base_url}/dashboard/{dashboard_id}")
         print(f"Dashboard ID: {dashboard_id}")
-        print(f"\nKreirani upiti:")
-        print(f"  V1 (Originalna - 'movies'):")
+        print(f"\nCreated queries:")
+        print(f"  V1 (Original - 'movies'):")
         for query_config in queries:
-            print(f"    • [V1] {query_config['name']}")
-        print(f"\n  V2 (Optimizovana - 'movies_optimized'):")
+            print(f"    [V1] {query_config['name']}")
+        print(f"\n  V2 (Optimized - 'movies_optimized'):")
         for query_config in queries:
-            print(f"    • [V2] {query_config['name']}")
+            print(f"    [V2] {query_config['name']}")
         
-        print(f"\nUPUTSTVO ZA KORIŠĆENJE:")
-        print(f"1. Pristupite Metabase na: {self.base_url}")
-        print(f"2. U levi meni kliknite na 'Dashboards'")
-        print(f"3. Pronađite 'Performance Analiza V1 vs V2'")
-        print(f"4. Kliknite na 'Edit' u gornjem desnom uglu")
-        print(f"5. Dodajte kartice sa upitima da kreirate vizuelizaciju")
-        print(f"6. Poredite rezultate V1 i V2 upita\n")
+        print(f"\nUSAGE INSTRUCTIONS:")
+        print(f"1. Open Metabase at: {self.base_url}")
+        print(f"2. Click on 'Dashboards' in left menu")
+        print(f"3. Find 'Query Dashboard'")
+        print(f"4. Click 'Edit' in top right corner")
+        print(f"5. Add cards with queries to create visualization")
+        print(f"6. Compare results between V1 and V2\n")
         
         return True
 
 
 if __name__ == "__main__":
-    # Postavi UTF-8 encoding za Windows konzolu
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
     
     print("\n" + "="*80)
-    print("METABASE PERFORMANCE DASHBOARD SETUP - V1 vs V2 POREĐENJE")
+    print("METABASE PERFORMANCE DASHBOARD SETUP - V1 vs V2 COMPARISON")
     print("="*80)
     
-    # Provera MongoDB
-    print("\nPREVERAVANJE PREDUSLOVA:\n")
+    print("\nCHECKING PREREQUISITES:\n")
     
-    print("Proveravajući MongoDB...")
+    print("Checking MongoDB...")
     try:
         from pymongo import MongoClient
         client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=2000)
         client.admin.command('ping')
-        print("✓ MongoDB je dostupna\n")
+        print("MongoDB is available\n")
     except Exception as e:
-        print(f"✗ MongoDB nije dostupna: {str(e)}")
-        print("Pokrenite MongoDB komandom: mongod\n")
+        print(f"MongoDB is not available: {str(e)}")
+        print("Start MongoDB with: mongod\n")
         sys.exit(1)
     
-    # Pokretanje setupa
     metabase = MetabaseIntegration()
     success = metabase.setup_performance_comparison_dashboard()
     
     if success:
         print("\n" + "="*80)
-        print("✓ SETUP JE USPEŠNO ZAVRŠEN!")
+        print("SETUP COMPLETED SUCCESSFULLY!")
         print("="*80)
-        print("\nSledećI koraci:")
-        print("1. Otvori: http://localhost:3000")
-        print("2. Navigiraj do: Dashboards > Performance Analiza V1 vs V2")
-        print("3. Klikni 'Edit' i dodaj kartice sa upitima")
-        print("4. Poredi rezultate između V1 i V2\n")
+        print("\nNext steps:")
+        print("1. Open: http://localhost:3000")
+        print("2. Navigate to: Dashboards > Query Dashboard")
+        print("3. Click 'Edit' and add cards with queries")
+        print("4. Compare results between V1 and V2\n")
     else:
         print("\n" + "="*80)
-        print("✗ SETUP JE NEUSPEŠAN")
+        print("SETUP FAILED")
         print("="*80)
-        print("\nPreverite:")
-        print("1. Da li je Metabase pokrenuta: docker ps | grep metabase")
-        print("2. Da li je MongoDB dostupna: mongosh")
-        print("3. Da li su kolekcije 'movies' i 'movies_optimized' dostupne\n")
+        print("\nCheck:")
+        print("1. Is Metabase running: docker ps | grep metabase")
+        print("2. Is MongoDB available: mongosh")
+        print("3. Are 'movies' and 'movies_optimized' collections available\n")
         sys.exit(1)
