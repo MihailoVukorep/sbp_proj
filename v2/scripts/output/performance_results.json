@@ -1,34 +1,34 @@
 {
-  "timestamp": "2025-10-21 19:02:00",
+  "timestamp": "2025-10-21 20:12:12",
   "iterations": 3,
   "queries": {
     "query_1": {
-      "v1_avg_time_ms": 996.1,
-      "v2_avg_time_ms": 19.37,
+      "v1_avg_time_ms": 1194.66,
+      "v2_avg_time_ms": 19.66,
       "v1_avg_docs": 1281525,
       "v2_avg_docs": 1745,
       "v1_avg_keys": 0,
       "v2_avg_keys": 1746,
-      "time_improvement_percent": 98.1,
+      "time_improvement_percent": 98.4,
       "docs_improvement_percent": 99.9,
       "keys_improvement_percent": 0,
-      "speedup_factor": 51.43
+      "speedup_factor": 60.77
     },
     "query_2": {
-      "v1_avg_time_ms": 3340.41,
-      "v2_avg_time_ms": 2839.61,
+      "v1_avg_time_ms": 3480.43,
+      "v2_avg_time_ms": 3078.08,
       "v1_avg_docs": 1281525,
       "v2_avg_docs": 346527,
       "v1_avg_keys": 0,
       "v2_avg_keys": 561802,
-      "time_improvement_percent": 15.0,
+      "time_improvement_percent": 11.6,
       "docs_improvement_percent": 73.0,
       "keys_improvement_percent": 0,
-      "speedup_factor": 1.18
+      "speedup_factor": 1.13
     },
     "query_3": {
-      "v1_avg_time_ms": 854.09,
-      "v2_avg_time_ms": 4.38,
+      "v1_avg_time_ms": 987.27,
+      "v2_avg_time_ms": 4.77,
       "v1_avg_docs": 1281525,
       "v2_avg_docs": 613,
       "v1_avg_keys": 0,
@@ -36,43 +36,43 @@
       "time_improvement_percent": 99.5,
       "docs_improvement_percent": 100.0,
       "keys_improvement_percent": 0,
-      "speedup_factor": 194.83
+      "speedup_factor": 206.95
     },
     "query_4": {
-      "v1_avg_time_ms": 1093.38,
-      "v2_avg_time_ms": 158.14,
+      "v1_avg_time_ms": 1268.73,
+      "v2_avg_time_ms": 182.01,
       "v1_avg_docs": 1281525,
       "v2_avg_docs": 15826,
       "v1_avg_keys": 0,
       "v2_avg_keys": 39829,
-      "time_improvement_percent": 85.5,
+      "time_improvement_percent": 85.7,
       "docs_improvement_percent": 98.8,
       "keys_improvement_percent": 0,
-      "speedup_factor": 6.91
+      "speedup_factor": 6.97
     },
     "query_5": {
-      "v1_avg_time_ms": 1504.21,
-      "v2_avg_time_ms": 713.13,
+      "v1_avg_time_ms": 1712.82,
+      "v2_avg_time_ms": 786.53,
       "v1_avg_docs": 1281525,
       "v2_avg_docs": 95403,
       "v1_avg_keys": 0,
       "v2_avg_keys": 105156,
-      "time_improvement_percent": 52.6,
+      "time_improvement_percent": 54.1,
       "docs_improvement_percent": 92.6,
       "keys_improvement_percent": 0,
-      "speedup_factor": 2.11
+      "speedup_factor": 2.18
     }
   },
   "totals": {
-    "total_v1_time_ms": 7788.19,
-    "total_v2_time_ms": 3734.63,
+    "total_v1_time_ms": 8643.91,
+    "total_v2_time_ms": 4071.05,
     "total_v1_docs": 6407625,
     "total_v2_docs": 460114,
     "total_v1_keys": 0,
     "total_v2_keys": 709148,
-    "total_time_improvement_percent": 52.0,
+    "total_time_improvement_percent": 52.9,
     "total_docs_improvement_percent": 92.8,
     "total_keys_improvement_percent": 0,
-    "total_speedup": 2.09
+    "total_speedup": 2.12
   }
 }
