@@ -1,9 +1,18 @@
 """
-Query 2: Average Rating by Genre and Decade
-Prosečna ocena filmova po žanrovima kroz decenije
+Query 2: Kako se prosečna ocena filmova u različitim žanrovima menjala tokom decenija?
+
+# BOTTLENECK:
+U prvoj verziji polje `decade` se računa direktno unutar pipeline-a pomoću `$addFields`. 
+To povećava trošak obrade jer se izračunavanje vrši za svaki dokument tokom izvršavanja upita.
+
+# REŠENJE:
+Druga verzija koristi unapred izračunato polje `release_info.decade` i kompozitni indeks 
+koji uključuje deceniju, prosečnu ocenu i žanr. 
+Na taj način filtriranje i grupisanje po deceniji i žanru postaje znatno brže.
+
 """
 
-# V1: Računanje decade u pipeline
+# V1: Neoptimizovan - izračunavanje decenije u pipeline-u
 QUERY_2_V1 = [
     {
         '$match': {
@@ -42,7 +51,7 @@ QUERY_2_V1 = [
     }
 ]
 
-# V2: OPTIMIZED - Precomputed decade field
+# V2: Optimizovan - koristi precomputed deceniju + kompozitni indeks
 QUERY_2_V2 = [
     {
         '$match': {

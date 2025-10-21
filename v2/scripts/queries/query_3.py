@@ -1,9 +1,20 @@
 """
-Query 3: Blockbuster Movies by Month
-Meseci sa najviše blockbuster premijera (budžet > 100M)
+Query 3: Koji meseci u godini imaju najveću stopu objavljivanja blockbuster (hit) filmova (budžet > 100M)?
+
+# BOTTLENECK:
+U prvoj verziji filtriranje se vrši direktno nad poljem `financial.budget` i koristi se ugnježdeno 
+polje `release_info.release_date.month`. To dovodi do sporijeg izvršavanja jer nije indeksirano 
+i MongoDB mora da prolazi kroz sve dokumente radi provere budžeta i ekstrakcije meseca.
+
+# REŠENJE:
+Druga verzija koristi unapred definisanu kategoriju budžeta (`financial.budget_category`) 
+i denormalizovano polje `release_info.month`.  
+Kombinacija sa kompozitnim indeksom koji uključuje budžetsku kategoriju i mesec značajno ubrzava filtriranje 
+i agregaciju blockbuster filmova po mesecima.
+
 """
 
-# V1: Direktni budget filter i month extraction
+# V1: Neoptimizovan - direktni budget filter i izdvajanje meseca
 QUERY_3_V1 = [
     {
         '$match': {
@@ -24,7 +35,7 @@ QUERY_3_V1 = [
     }
 ]
 
-# V2: OPTIMIZED - Budget category + denormalized month
+# V2: Optimizovan - koristi budžetsku kategoriju + denormalizovan mesec + kompozitni indeks
 QUERY_3_V2 = [
     {
         '$match': {

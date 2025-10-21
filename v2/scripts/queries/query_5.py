@@ -1,9 +1,19 @@
 """
-Query 5: Average Runtime by Country
-Prosečno trajanje filma po zemlji produkcije (ocena > 7.0, > 100 filmova ukupno)
+Query 5: Prosečno trajanje filma po zemlji produkcije sa ocenom iznad 7.0,
+         uzimajući u obzir samo zemlje koje su proizvele više od 100 filmova
+
+# BOTTLENECK:
+U prvoj verziji upit prvo vrši `$unwind` nad poljem `production.countries`, a zatim filtrira po oceni i trajanju.  
+Bez indeksa, MongoDB mora da procesira sve dokumente, što može biti sporo na velikim datasetima.
+
+# REŠENJE:
+Druga verzija koristi unapred definisan kvalitet ocene (`ratings.quality_tier`) i kompozitni indeks 
+koji uključuje zemlje, trajanje i kvalitet ocene.  
+Time se filtriranje i agregacija po zemlji znatno ubrzava.
+
 """
 
-# V1: Direktno iz queries.sql - unwind pa match
+# V1: Neoptimizovan - unwind pa match
 QUERY_5_V1 = [
     {
         '$unwind': '$production.countries'
@@ -34,7 +44,7 @@ QUERY_5_V1 = [
     }
 ]
 
-# V2: OPTIMIZED - Quality tier index + compound index
+# V2: Optimizovan - koristi kvalitet ocene + kompozitni indeks
 QUERY_5_V2 = [
     {
         '$match': {

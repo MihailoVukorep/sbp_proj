@@ -1,5 +1,5 @@
 // ============================================================================
-// GRUPA 1: INDEKSI ZA UPIT 1 (Prosečan prihod po kompaniji, budžet > 50M)
+// Query 1: Koliki je prosečan prihod po filmu produkcijskih kuća čiji su filmovi imali budžet veći od 50 miliona dolara?
 // ============================================================================
 
 db.movies_optimized.createIndex(
@@ -14,7 +14,7 @@ db.movies_optimized.createIndex(
 );
 
 // ============================================================================
-// GRUPA 2: INDEKSI ZA UPIT 2 (Prosečna ocena po žanru kroz decenije)
+// Query 2: Kako se prosečna ocena filmova u različitim žanrovima menjala tokom decenija?
 // ============================================================================
 
 db.movies_optimized.createIndex(
@@ -28,7 +28,7 @@ db.movies_optimized.createIndex(
 
 
 // ============================================================================
-// GRUPA 3: INDEKSI ZA UPIT 3 (Meseci sa najviše blockbuster filmova)
+// Query 3: Koji meseci u godini imaju najveću stopu objavljivanja blockbuster (hit) filmova (budžet > 100M)?
 // ============================================================================
 
 db.movies_optimized.createIndex(
@@ -42,7 +42,7 @@ db.movies_optimized.createIndex(
 );
 
 // ============================================================================
-// GRUPA 4: INDEKSI ZA UPIT 4 (Najprofitabilnije kombinacije žanrova)
+// Query 4: Koje su najprofitabilnije kombinacije žanrova?
 // ============================================================================
 
 db.movies_optimized.createIndex(
@@ -58,7 +58,8 @@ db.movies_optimized.createIndex(
 
 
 // ============================================================================
-// GRUPA 5: INDEKSI ZA UPIT 5 (Prosečno trajanje po zemlji, ocena > 7, 100+ filmova)
+// Query 5: Prosečno trajanje filma po zemlji produkcije sa ocenom iznad 7.0, uzimajući u obzir samo zemlje koje su proizvele više od
+// 100 filmova?
 // ============================================================================
 
 db.movies_optimized.createIndex(
